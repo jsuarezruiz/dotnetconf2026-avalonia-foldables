@@ -1,0 +1,52 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Ll]og/
+artifacts/
+TestResults/
+*.binlog
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.DotSettings.user
+
+# IDEs
+.vs/
+.vscode/
+.idea/
+*.sln.iml
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+
+# iOS and Mac Catalyst
+*.ipa
+*.dSYM/
+*.dSYM.zip
+xcuserdata/
+DerivedData/
+
+# Android
+*.apk
+*.aab
+Resource.designer.cs
+
+# Signing: keep keys and profiles out of the repo
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+*.provisionprofile
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
