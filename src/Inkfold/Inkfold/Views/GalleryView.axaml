@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Inkfold.Controls"
+             x:Class="Inkfold.Views.GalleryView"
+             Background="{StaticResource ScrimBrush}">
+  <Border Name="CardHost" Classes="panel" Margin="16" MaxWidth="900">
+    <DockPanel>
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" Margin="20,16,12,8">
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Classes="title" Text="Gallery" />
+          <TextBlock Name="CountText" Classes="value" HorizontalAlignment="Left" />
+        </StackPanel>
+        <Button Name="NewButton" Grid.Column="1" Classes="pill" Margin="0,0,8,0" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <controls:Icon Data="{x:Static controls:Icons.Plus}" Width="18" Height="18" />
+            <TextBlock Text="New drawing" Foreground="White" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button Name="CloseButton" Grid.Column="2" Classes="icon" ToolTip.Tip="Close" AutomationProperties.Name="Close" VerticalAlignment="Center">
+          <controls:Icon Data="{x:Static controls:Icons.X}" />
+        </Button>
+      </Grid>
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <WrapPanel Name="Items" Margin="14,4,14,18" ItemSpacing="12" LineSpacing="12" />
+      </ScrollViewer>
+    </DockPanel>
+  </Border>
+</UserControl>

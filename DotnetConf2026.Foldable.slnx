@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/BotVsBugs/">
+    <Project Path="src/BotVsBugs/BotVsBugs/BotVsBugs.csproj" />
+    <Project Path="src/BotVsBugs/BotVsBugs.Android/BotVsBugs.Android.csproj">
+      <Deploy />
+    </Project>
+    <Project Path="src/BotVsBugs/BotVsBugs.Desktop/BotVsBugs.Desktop.csproj" />
+    <Project Path="src/BotVsBugs/BotVsBugs.iOS/BotVsBugs.iOS.csproj">
+      <Deploy />
+    </Project>
+  </Folder>
+  <Folder Name="/Inkfold/">
+    <Project Path="src/Inkfold/Inkfold/Inkfold.csproj" />
+    <Project Path="src/Inkfold/Inkfold.Android/Inkfold.Android.csproj">
+      <Deploy />
+    </Project>
+    <Project Path="src/Inkfold/Inkfold.Desktop/Inkfold.Desktop.csproj" />
+    <Project Path="src/Inkfold/Inkfold.iOS/Inkfold.iOS.csproj">
+      <Deploy />
+    </Project>
+  </Folder>
+</Solution>

@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Inkfold.Controls"
+             xmlns:primitives="using:Avalonia.Controls.Primitives"
+             x:Class="Inkfold.Controls.ToolPanel">
+  <DockPanel>
+
+    <!-- One section at a time when the panel floats; all three side by side when it's docked. -->
+    <Grid Name="Header" DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="12,12,8,4">
+      <StackPanel Orientation="Horizontal" Spacing="2">
+        <Button Name="BrushTab" Classes="segment" Content="Brush" />
+        <Button Name="ColorTab" Classes="segment" Content="Color" />
+        <Button Name="LayersTab" Classes="segment" Content="Layers" />
+      </StackPanel>
+      <Button Name="CloseButton" Grid.Column="1" Classes="icon small" ToolTip.Tip="Close" AutomationProperties.Name="Close">
+        <controls:Icon Data="{x:Static controls:Icons.X}" Width="18" Height="18" />
+      </Button>
+    </Grid>
+
+    <Grid Name="Sections">
+
+      <!-- Brush -->
+      <StackPanel Name="BrushSection">
+        <TextBlock Name="BrushCaption" Classes="caption" Text="BRUSH" />
+        <UniformGrid Name="ToolGrid" Columns="4" />
+        <Panel Name="PreviewBox">
+          <controls:BrushPreview Name="Preview" />
+          <TextBlock Name="ToolHint" Classes="body" Foreground="#5B5566" FontSize="13"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+        </Panel>
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+          <TextBlock Classes="caption" Text="SIZE" VerticalAlignment="Center" />
+          <TextBlock Name="SizeText" Grid.Column="1" Classes="value" />
+          <Slider Name="SizeSlider" Grid.Row="1" Grid.ColumnSpan="2" Minimum="0" Maximum="1" />
+        </Grid>
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+          <TextBlock Classes="caption" Text="OPACITY" VerticalAlignment="Center" />
+          <TextBlock Name="OpacityText" Grid.Column="1" Classes="value" />
+          <Slider Name="OpacitySlider" Grid.Row="1" Grid.ColumnSpan="2" Minimum="0.05" Maximum="1" />
+        </Grid>
+      </StackPanel>
+
+      <!-- Color -->
+      <StackPanel Name="ColorSection">
+        <TextBlock Name="ColorCaption" Classes="caption" Text="COLOR" />
+        <primitives:ColorSpectrum Name="Spectrum" CornerRadius="12"
+                                  Components="SaturationValue" Shape="Box" />
+        <primitives:ColorSlider Name="HueSlider" ColorComponent="Component1" ColorModel="Hsva"
+                                Orientation="Horizontal" IsAlphaVisible="False" IsPerceptive="True"
+                                HsvColor="{Binding #Spectrum.HsvColor, Mode=TwoWay}" />
+        <UniformGrid Name="Swatches" Columns="8" HorizontalAlignment="Left" />
+        <StackPanel Name="RecentRow" Spacing="6">
+          <TextBlock Classes="caption" Text="RECENT" />
+          <WrapPanel Name="Recent" ItemSpacing="6" LineSpacing="6" />
+        </StackPanel>
+      </StackPanel>
+
+      <!-- Layers -->
+      <DockPanel Name="LayersSection">
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+          <TextBlock Name="LayersCaption" Classes="caption" Text="LAYERS" VerticalAlignment="Center" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="0">
+            <Button Name="AddLayerButton" Classes="icon small" ToolTip.Tip="New layer" AutomationProperties.Name="New layer">
+              <controls:Icon Data="{x:Static controls:Icons.Plus}" Width="18" Height="18" />
+            </Button>
+            <Button Name="DuplicateLayerButton" Classes="icon small" ToolTip.Tip="Duplicate layer" AutomationProperties.Name="Duplicate layer">
+              <controls:Icon Data="{x:Static controls:Icons.Copy}" Width="18" Height="18" />
+            </Button>
+            <Button Name="LayerUpButton" Classes="icon small" ToolTip.Tip="Move up" AutomationProperties.Name="Move up">
+              <controls:Icon Data="{x:Static controls:Icons.ArrowUp}" Width="18" Height="18" />
+            </Button>
+            <Button Name="LayerDownButton" Classes="icon small" ToolTip.Tip="Move down" AutomationProperties.Name="Move down">
+              <controls:Icon Data="{x:Static controls:Icons.ArrowDown}" Width="18" Height="18" />
+            </Button>
+            <Button Name="DeleteLayerButton" Classes="icon small" ToolTip.Tip="Delete layer" AutomationProperties.Name="Delete layer">
+              <controls:Icon Data="{x:Static controls:Icons.Trash}" Width="18" Height="18" />
+            </Button>
+          </StackPanel>
+        </Grid>
+        <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="0,8,0,0">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="caption" Text="LAYER OPACITY" VerticalAlignment="Center" />
+            <TextBlock Name="LayerOpacityText" Grid.Column="1" Classes="value" />
+          </Grid>
+          <Slider Name="LayerOpacitySlider" Minimum="0" Maximum="1" />
+          <Button Name="ClearLayerButton" Classes="pill quiet" HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center" Content="Clear layer" />
+        </StackPanel>
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Name="LayerList" Spacing="2" />
+        </ScrollViewer>
+      </DockPanel>
+
+    </Grid>
+  </DockPanel>
+</UserControl>

@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fold="using:Nova.Avalonia.Foldable"
+             xmlns:controls="using:Inkfold.Controls"
+             xmlns:views="using:Inkfold.Views"
+             x:Class="Inkfold.Views.MainView"
+             fold:Fold.IsEnabled="True"
+             TopLevel.AutoSafeAreaPadding="False"
+             Focusable="True"
+             Background="{StaticResource DeskBrush}">
+
+  <Panel>
+
+    <!-- The page spans a vertical fold, open like a book. In tabletop it stands on the top half as on
+         an easel, and the tools lie on the bottom half. -->
+    <fold:TwoPaneView Name="Panes"
+                      MinWideModeWidth="100000"
+                      MinTallModeHeight="100000"
+                      WideModeConfiguration="SinglePane"
+                      TallModeConfiguration="TopBottom">
+      <fold:TwoPaneView.Pane1>
+        <Panel Name="Stage">
+          <controls:PaintCanvas Name="Canvas" />
+
+          <controls:ToolRail Name="Tools" />
+          <controls:ActionRail Name="Actions" />
+
+          <Button Name="FitButton" Classes="pill quiet" IsVisible="False" ToolTip.Tip="Fit the page (0)" AutomationProperties.Name="Fit the page">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <controls:Icon Data="{x:Static controls:Icons.Maximize2}" Width="16" Height="16" />
+              <TextBlock Text="Fit page" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+
+          <Border Name="PanelHost" Classes="panel" IsVisible="False">
+            <controls:ToolPanel Name="FloatingPanel" />
+          </Border>
+
+          <Border Name="PressBanner" Classes="toast" IsVisible="False" MaxWidth="420">
+            <StackPanel Spacing="10">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <controls:Icon Data="{x:Static controls:Icons.BookOpen}" Foreground="{StaticResource PressBrush}" />
+                <TextBlock Name="PressText" Classes="body" VerticalAlignment="Center" MaxWidth="340" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button Name="PressCancelButton" Classes="pill quiet" Content="Cancel" />
+                <Button Name="PressNowButton" Classes="pill press" Content="Press now" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </Panel>
+      </fold:TwoPaneView.Pane1>
+      <fold:TwoPaneView.Pane2>
+        <Border Name="DockHost" Background="{StaticResource ChromeBrush}">
+          <Grid ColumnDefinitions="Auto,*">
+            <controls:ActionRail Name="DockActions" Margin="10" VerticalAlignment="Center" />
+            <controls:ToolPanel Name="DockedPanel" Grid.Column="1" IsDocked="True" />
+          </Grid>
+        </Border>
+      </fold:TwoPaneView.Pane2>
+    </fold:TwoPaneView>
+
+    <views:GalleryView Name="GalleryLayer" IsVisible="False" />
+
+    <Border Name="Toast" Classes="toast" IsVisible="False" IsHitTestVisible="False"
+            HorizontalAlignment="Center" VerticalAlignment="Bottom">
+      <TextBlock Name="ToastText" Classes="body" />
+    </Border>
+
+  </Panel>
+</UserControl>

@@ -1,0 +1,505 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Avalonia.Threading;
+using Inkfold.Painting;
+using SkiaSharp;
+
+namespace Inkfold;
+
+/// <summary>
+/// The drawing that's open and the brush in hand, shared by the canvas and every tool panel on screen.
+/// </summary>
+public sealed class Studio
+{
+    private const int MaxRecentColors = 8;
+
+    private readonly DispatcherTimer _autosave;
+    private readonly List<SKColor> _recentColors = [];
+    private int _seed = Environment.TickCount;
+
+    // The tool to go back to once the picker has picked a color.
+    private ToolKind? _beforePicker;
+
+    public Studio(Gallery gallery)
+    {
+        Gallery = gallery;
+        Tools = ToolInfo.CreateAll();
+        Tool = Tools[0];
+
+        var latest = gallery.List().FirstOrDefault();
+        Document = (latest is null ? null : TryLoad(latest.Id)) ?? Document.CreateBlank();
+        History = new History(Document);
+        History.Changed += (_, _) => SettingsChanged?.Invoke(this, EventArgs.Empty);
+
+        _autosave = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.2) };
+        _autosave.Tick += (_, _) =>
+        {
+            _autosave.Stop();
+            _ = SaveAsync(Document);
+        };
+    }
+
+    /// <summary>
+    /// Raised when the tool, color, size, opacity, symmetry, press or undo state changes.
+    /// </summary>
+    public event EventHandler? SettingsChanged;
+
+    /// <summary>
+    /// Raised when paint changes on any layer.
+    /// </summary>
+    public event EventHandler? PaintChanged;
+
+    /// <summary>
+    /// Raised when layers are added, removed, moved, shown, hidden or selected.
+    /// </summary>
+    public event EventHandler? LayersChanged;
+
+    /// <summary>
+    /// Raised when another drawing opens.
+    /// </summary>
+    public event EventHandler? DocumentOpened;
+
+    /// <summary>
+    /// Raised after a press, with each pressed layer and its paint from before, for the animation.
+    /// </summary>
+    public event EventHandler<PressedEventArgs>? Pressed;
+
+    /// <summary>
+    /// Raised when the brush's size or opacity is changed by hand, so its new dab can be shown.
+    /// </summary>
+    public event EventHandler? BrushAdjusted;
+
+    /// <summary>
+    /// Raised with a short message for the person drawing.
+    /// </summary>
+    public event EventHandler<string>? Notice;
+
+    public Gallery Gallery { get; }
+
+    public ToolInfo[] Tools { get; }
+
+    public ToolInfo Tool { get; private set; }
+
+    public SKColor Color { get; private set; } = new(0x1D, 0x1B, 0x2A);
+
+    public IReadOnlyList<SKColor> RecentColors => _recentColors;
+
+    public bool Symmetry { get; private set; }
+
+    /// <summary>
+    /// Gets whether closing and opening the device will press the page.
+    /// </summary>
+    public bool IsPressArmed { get; private set; }
+
+    public Document Document { get; private set; }
+
+    public History History { get; }
+
+    public void SelectTool(ToolKind kind)
+    {
+        if (kind == ToolKind.Picker && Tool.Kind != ToolKind.Picker)
+            _beforePicker = Tool.Kind;
+        Tool = Tools.First(tool => tool.Kind == kind);
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SetColor(SKColor color)
+    {
+        Color = color.WithAlpha(255);
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Goes back to the tool in hand before the picker, as a picked color is meant for painting.
+    /// </summary>
+    public void FinishPick()
+    {
+        if (Tool.Kind == ToolKind.Picker && _beforePicker is { } previous)
+            SelectTool(previous);
+    }
+
+    public void SetSize(double size)
+    {
+        Tool.Size = Tool.Clamp(size);
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+        BrushAdjusted?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SetOpacity(double opacity)
+    {
+        Tool.Opacity = Math.Clamp(opacity, 0.05, 1);
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+        BrushAdjusted?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SetSymmetry(bool on)
+    {
+        Symmetry = on;
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void ArmPress(bool armed)
+    {
+        IsPressArmed = armed;
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Starts a stroke on the active layer, or returns null when the tool doesn't paint strokes or the
+    /// layer is hidden.
+    /// </summary>
+    public StrokeBuilder? BeginStroke()
+    {
+        if (!Tool.IsBrush || !CanPaint())
+            return null;
+
+        var style = new StrokeStyle(
+            Tool.Kind, Color, (float)Tool.Size, (float)Tool.Opacity, Symmetry ? Document.Width / 2f : null, _seed++);
+        return new StrokeBuilder(Tool, style, Document.Active);
+    }
+
+    /// <summary>
+    /// Paints a finished stroke into its layer, as one step of history.
+    /// </summary>
+    public void Commit(StrokeBuilder stroke)
+    {
+        var live = stroke.Snapshot();
+        var layer = live.Target;
+        if (live.Samples.Length == 0 || layer.IsDisposed || !Document.Layers.Contains(layer))
+            return;
+
+        var area = Pixels.Clip(live.Bounds, Document.Bounds);
+        if (area.IsEmpty)
+            return;
+
+        lock (Document.Sync)
+        {
+            var before = Pixels.Copy(layer.Pixels, area);
+            using (var canvas = new SKCanvas(layer.Pixels))
+                StrokeRenderer.Draw(canvas, live);
+            layer.Refresh();
+            History.Push(new PixelsStep(layer, area, before, Pixels.Copy(layer.Pixels, area)));
+        }
+
+        if (live.Style.Tool != ToolKind.Eraser)
+            Remember(live.Style.Color);
+        Painted();
+    }
+
+    /// <summary>
+    /// Fills the area under a point of the page with the color.
+    /// </summary>
+    public void FillAt(SKPoint point)
+    {
+        if (!CanPaint())
+            return;
+
+        var layer = Document.Active;
+        using var reference = DocumentRenderer.RenderComposite(Document, false);
+        lock (Document.Sync)
+        {
+            using var whole = Pixels.Copy(layer.Pixels, Document.Bounds);
+            if (Fill.Apply(reference, layer.Pixels, (int)point.X, (int)point.Y, Color, Tool.Opacity) is not { } area)
+                return;
+
+            layer.Refresh();
+            History.Push(new PixelsStep(layer, area, Pixels.Copy(whole, area), Pixels.Copy(layer.Pixels, area)));
+        }
+
+        Remember(Color);
+        Painted();
+    }
+
+    /// <summary>
+    /// Presses the paint of every visible layer onto the facing half of the page, as folding wet paper
+    /// does, across the line the device folds along.
+    /// </summary>
+    public void Press(PressFold fold)
+    {
+        IsPressArmed = false;
+        var steps = new List<PixelsStep>();
+        lock (Document.Sync)
+        {
+            foreach (var layer in Document.Layers)
+            {
+                if (!layer.IsVisible)
+                    continue;
+
+                var before = Pixels.Copy(layer.Pixels, Document.Bounds);
+                InkPress.Apply(layer.Pixels, _seed++, fold);
+                layer.Refresh();
+                steps.Add(new PixelsStep(layer, Document.Bounds, before, Pixels.Copy(layer.Pixels, Document.Bounds)));
+            }
+        }
+
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+        if (steps.Count == 0)
+        {
+            Notice?.Invoke(this, "Every layer is hidden: there's no paint to press.");
+            return;
+        }
+
+        History.Push(new StepGroup(steps));
+        Painted();
+        Pressed?.Invoke(this, new PressedEventArgs(steps, fold));
+    }
+
+    public void ClearLayer()
+    {
+        var layer = Document.Active;
+        lock (Document.Sync)
+        {
+            var before = Pixels.Copy(layer.Pixels, Document.Bounds);
+            layer.Pixels.Erase(SKColors.Transparent);
+            layer.Refresh();
+            History.Push(new PixelsStep(layer, Document.Bounds, before, Pixels.Copy(layer.Pixels, Document.Bounds)));
+        }
+
+        Painted();
+    }
+
+    public void Undo()
+    {
+        if (History.Undo())
+            Restored();
+    }
+
+    public void Redo()
+    {
+        if (History.Redo())
+            Restored();
+    }
+
+    public void AddLayer()
+    {
+        var layer = new Layer(Document.NextLayerName(), Document.Width, Document.Height);
+        var index = Document.ActiveIndex + 1;
+        var step = new LayerStep(layer, index, removed: false);
+        step.Redo(Document);
+        History.Push(step);
+        LayersEdited();
+    }
+
+    public void DuplicateLayer()
+    {
+        Layer copy;
+        lock (Document.Sync)
+            copy = Document.Active.Clone($"{Document.Active.Name} copy");
+
+        var step = new LayerStep(copy, Document.ActiveIndex + 1, removed: false);
+        step.Redo(Document);
+        History.Push(step);
+        LayersEdited();
+    }
+
+    public void DeleteLayer()
+    {
+        if (Document.Layers.Count <= 1)
+        {
+            ClearLayer();
+            return;
+        }
+
+        var step = new LayerStep(Document.Active, Document.ActiveIndex, removed: true);
+        step.Redo(Document);
+        History.Push(step);
+        LayersEdited();
+    }
+
+    /// <summary>
+    /// Moves the active layer up (positive) or down the stack.
+    /// </summary>
+    public void MoveLayer(int by)
+    {
+        var from = Document.ActiveIndex;
+        var to = Math.Clamp(from + by, 0, Document.Layers.Count - 1);
+        if (to == from)
+            return;
+
+        LayerMoveStep.Move(Document, from, to);
+        History.Push(new LayerMoveStep(from, to));
+        LayersEdited();
+    }
+
+    public void SelectLayer(int index)
+    {
+        lock (Document.Sync)
+            Document.ActiveIndex = Math.Clamp(index, 0, Document.Layers.Count - 1);
+        LayersChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SetLayerVisible(int index, bool visible)
+    {
+        lock (Document.Sync)
+            Document.Layers[index].IsVisible = visible;
+        LayersEdited();
+    }
+
+    public void SetLayerOpacity(int index, double opacity)
+    {
+        lock (Document.Sync)
+            Document.Layers[index].Opacity = Math.Clamp(opacity, 0, 1);
+        LayersEdited();
+    }
+
+    public void NewDrawing() => Open(Document.CreateBlank());
+
+    public void OpenDrawing(string id)
+    {
+        if (id == Document.Id)
+            return;
+
+        if (TryLoad(id) is { } document)
+            Open(document);
+        else
+            Notice?.Invoke(this, "That drawing couldn't be opened.");
+    }
+
+    public void DeleteDrawing(string id)
+    {
+        try
+        {
+            Gallery.Delete(id);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Notice?.Invoke(this, "That drawing couldn't be deleted.");
+            return;
+        }
+
+        if (id == Document.Id)
+        {
+            _autosave.Stop();
+            var next = Gallery.List().FirstOrDefault();
+            Open((next is null ? null : TryLoad(next.Id)) ?? Document.CreateBlank(), save: false);
+        }
+    }
+
+    /// <summary>
+    /// Saves changes now rather than after the next pause, as when the app goes to the background or
+    /// the gallery opens. A drawing without changes isn't written, so its date stays.
+    /// </summary>
+    public Task SaveNow()
+    {
+        if (!_autosave.IsEnabled)
+            return Task.CompletedTask;
+
+        _autosave.Stop();
+        return SaveAsync(Document);
+    }
+
+    /// <summary>
+    /// Saves before the app quits, waiting a few seconds at most.
+    /// </summary>
+    public void SaveBeforeExit()
+    {
+        _autosave.Stop();
+        try
+        {
+            Task.Run(() => Gallery.SaveAsync(Document)).Wait(TimeSpan.FromSeconds(5));
+        }
+        catch (AggregateException)
+        {
+            // The app is closing, so there's no one left to tell; the last autosave stays on disk.
+        }
+    }
+
+    // Saves without throwing: a full disk or a missing folder shows a notice instead of losing the error.
+    private async Task SaveAsync(Document document)
+    {
+        try
+        {
+            await Gallery.SaveAsync(document);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Notice?.Invoke(this, "The drawing couldn't be saved.");
+        }
+    }
+
+    private void Open(Document document, bool save = true)
+    {
+        var old = Document;
+        var saved = save && _autosave.IsEnabled ? SaveAsync(old) : Task.CompletedTask;
+        _autosave.Stop();
+
+        Document = document;
+        History.Reset(document);
+        IsPressArmed = false;
+
+        // The old drawing goes once its last changes are on disk.
+        saved.ContinueWith(_ => Dispatcher.UIThread.Post(old.Dispose), TaskScheduler.Default);
+
+        DocumentOpened?.Invoke(this, EventArgs.Empty);
+        LayersChanged?.Invoke(this, EventArgs.Empty);
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+        PaintChanged?.Invoke(this, EventArgs.Empty);
+        if (save)
+            ScheduleSave();
+    }
+
+    private Document? TryLoad(string id)
+    {
+        try
+        {
+            return Gallery.Load(id);
+        }
+        catch (Exception exception) when (exception is System.IO.IOException or System.Text.Json.JsonException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private bool CanPaint()
+    {
+        if (Document.Active.IsVisible)
+            return true;
+
+        Notice?.Invoke(this, $"{Document.Active.Name} is hidden. Show it to paint on it.");
+        return false;
+    }
+
+    private void Remember(SKColor color)
+    {
+        _recentColors.Remove(color);
+        _recentColors.Insert(0, color);
+        if (_recentColors.Count > MaxRecentColors)
+            _recentColors.RemoveAt(_recentColors.Count - 1);
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void Painted()
+    {
+        PaintChanged?.Invoke(this, EventArgs.Empty);
+        ScheduleSave();
+    }
+
+    // Undo and redo can touch pixels or layers.
+    private void Restored()
+    {
+        LayersChanged?.Invoke(this, EventArgs.Empty);
+        Painted();
+    }
+
+    private void LayersEdited()
+    {
+        LayersChanged?.Invoke(this, EventArgs.Empty);
+        Painted();
+    }
+
+    private void ScheduleSave()
+    {
+        lock (Document.Sync)
+            Document.Modified = DateTime.Now;
+        _autosave.Stop();
+        _autosave.Start();
+    }
+}
+
+/// <summary>
+/// The layers a press changed, with their paint from before it, and the line it folded along.
+/// </summary>
+public sealed record PressedEventArgs(IReadOnlyList<PixelsStep> Layers, PressFold Fold);

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\Shared\Android\AndroidApp.props" />
+
+  <PropertyGroup>
+    <ApplicationId>com.nova.avalonia.foldable.botvsbugs</ApplicationId>
+    <BrandingDir>$(MSBuildThisFileDirectory)..\Branding\</BrandingDir>
+    <ApplicationTitle>Bot vs Bugs</ApplicationTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BotVsBugs\BotVsBugs.csproj" />
+    <!-- Referenced directly too, so this head gets the library's Android build with the hinge provider. -->
+    <ProjectReference Include="$(NovaFoldableProject)" />
+  </ItemGroup>
+</Project>

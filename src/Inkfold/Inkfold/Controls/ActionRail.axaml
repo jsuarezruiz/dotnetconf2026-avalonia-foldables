@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Inkfold.Controls"
+             x:Class="Inkfold.Controls.ActionRail">
+  <Border Classes="rail">
+    <StackPanel Name="Items" Spacing="2">
+      <Button Name="UndoButton" Classes="icon" ToolTip.Tip="Undo (two-finger tap)" AutomationProperties.Name="Undo">
+        <controls:Icon Data="{x:Static controls:Icons.Undo2}" />
+      </Button>
+      <Button Name="RedoButton" Classes="icon" ToolTip.Tip="Redo (three-finger tap)" AutomationProperties.Name="Redo">
+        <controls:Icon Data="{x:Static controls:Icons.Redo2}" />
+      </Button>
+
+      <Border Name="FirstDivider" Background="{StaticResource ChromeLineBrush}" />
+
+      <Button Name="SymmetryButton" Classes="icon" ToolTip.Tip="Symmetry (S)" AutomationProperties.Name="Symmetry">
+        <controls:Icon Data="{x:Static controls:Icons.SquareSplitHorizontal}" />
+      </Button>
+      <Button Name="PressButton" Classes="icon press" ToolTip.Tip="Press the page (P)" AutomationProperties.Name="Press the page">
+        <controls:Icon Data="{x:Static controls:Icons.BookOpen}" />
+      </Button>
+
+      <Border Name="SecondDivider" Background="{StaticResource ChromeLineBrush}" />
+
+      <Button Name="LayersButton" Classes="icon" ToolTip.Tip="Layers (L)" AutomationProperties.Name="Layers">
+        <controls:Icon Data="{x:Static controls:Icons.Layers}" />
+      </Button>
+      <Button Name="GalleryButton" Classes="icon" ToolTip.Tip="Gallery" AutomationProperties.Name="Gallery">
+        <controls:Icon Data="{x:Static controls:Icons.Images}" />
+      </Button>
+      <Button Name="ExportButton" Classes="icon" ToolTip.Tip="Export as PNG" AutomationProperties.Name="Export as PNG">
+        <controls:Icon Data="{x:Static controls:Icons.Download}" />
+      </Button>
+    </StackPanel>
+  </Border>
+</UserControl>

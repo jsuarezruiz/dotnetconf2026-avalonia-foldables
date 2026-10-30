@@ -1,0 +1,110 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Style Selector="TextBlock.title">
+    <Setter Property="FontFamily" Value="{StaticResource GameFont}" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="FontSize" Value="40" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <Style Selector="TextBlock.eyebrow">
+    <Setter Property="FontFamily" Value="{StaticResource GameFont}" />
+    <Setter Property="Foreground" Value="{StaticResource LilacBrush}" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="LetterSpacing" Value="1.5" />
+  </Style>
+
+  <Style Selector="TextBlock.body">
+    <Setter Property="FontFamily" Value="{StaticResource GameFont}" />
+    <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="LineHeight" Value="22" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <Style Selector="TextBlock.hud">
+    <Setter Property="FontFamily" Value="{StaticResource GameFont}" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- The dark pills the HUD sits on, readable over sky and grass alike. -->
+  <Style Selector="Border.chip">
+    <Setter Property="Background" Value="{StaticResource ChipBrush}" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Padding" Value="12,6" />
+    <Setter Property="MinHeight" Value="32" />
+  </Style>
+
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{StaticResource PanelBrush}" />
+    <Setter Property="CornerRadius" Value="20" />
+    <Setter Property="Padding" Value="12,8" />
+  </Style>
+
+  <!-- Big, round, purple: the game's buttons. -->
+  <Style Selector="Button.game">
+    <Setter Property="FontFamily" Value="{StaticResource GameFont}" />
+    <Setter Property="FontSize" Value="20" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="Background" Value="{StaticResource PurpleBrush}" />
+    <Setter Property="CornerRadius" Value="24" />
+    <Setter Property="Padding" Value="24,10" />
+    <Setter Property="MinHeight" Value="48" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.game:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#6A45F0" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+  <Style Selector="Button.game:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#3F1FB0" />
+  </Style>
+  <Style Selector="Button.game.secondary">
+    <Setter Property="Background" Value="#3A2D66" />
+  </Style>
+  <Style Selector="Button.game.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#4A3A80" />
+  </Style>
+
+  <Style Selector="Button.icon">
+    <Setter Property="Background" Value="{StaticResource ChipBrush}" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="44" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#E0251A47" />
+  </Style>
+
+  <!-- A level in the level grid. -->
+  <Style Selector="Button.level">
+    <Setter Property="Background" Value="#3A2D66" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Padding" Value="8,8,8,6" />
+    <Setter Property="Margin" Value="4" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.level:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#4A3A80" />
+  </Style>
+  <Style Selector="Button.level:disabled">
+    <Setter Property="Opacity" Value="0.4" />
+  </Style>
+  <Style Selector="Button.level:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#3A2D66" />
+  </Style>
+
+</Styles>

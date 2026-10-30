@@ -1,0 +1,26 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- A dim studio: plum-charcoal desk and chrome, so the paper and the paint carry the color. Violet is
+       the app's accent; coral marks the press. -->
+  <Color x:Key="DeskColor">#17151C</Color>
+  <Color x:Key="ChromeColor">#221F29</Color>
+  <Color x:Key="AccentColor">#7C6BFF</Color>
+  <Color x:Key="PressColor">#FF7A59</Color>
+
+  <SolidColorBrush x:Key="DeskBrush" Color="{StaticResource DeskColor}" />
+  <SolidColorBrush x:Key="ChromeBrush" Color="#F2221F29" />
+  <SolidColorBrush x:Key="PanelBrush" Color="{StaticResource ChromeColor}" />
+  <SolidColorBrush x:Key="ChromeLineBrush" Color="#3A3645" />
+  <SolidColorBrush x:Key="WellBrush" Color="#2D2936" />
+  <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+  <SolidColorBrush x:Key="PressBrush" Color="{StaticResource PressColor}" />
+  <SolidColorBrush x:Key="TextBrush" Color="#F4F1FA" />
+  <SolidColorBrush x:Key="MutedBrush" Color="#A39DB3" />
+  <SolidColorBrush x:Key="HoverBrush" Color="#1AFFFFFF" />
+  <SolidColorBrush x:Key="PressedBrush" Color="#2BFFFFFF" />
+  <SolidColorBrush x:Key="ScrimBrush" Color="#C017151C" />
+
+  <BoxShadows x:Key="FloatShadow">0 8 28 0 #70000000</BoxShadows>
+
+</ResourceDictionary>

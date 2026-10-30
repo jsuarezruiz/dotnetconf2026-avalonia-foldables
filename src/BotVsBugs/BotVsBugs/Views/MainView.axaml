@@ -1,0 +1,81 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fold="using:Nova.Avalonia.Foldable"
+             xmlns:controls="using:BotVsBugs.Controls"
+             x:Class="BotVsBugs.Views.MainView"
+             fold:Fold.IsEnabled="True"
+             TopLevel.AutoSafeAreaPadding="False"
+             Background="{StaticResource NightBrush}">
+
+  <Panel>
+
+    <!-- One game across a vertical fold, sling on one side and bugs on the other. In tabletop the game
+         stands on the top half and the control deck lies on the bottom one. -->
+    <fold:TwoPaneView Name="PlayPanes"
+                      MinWideModeWidth="100000"
+                      MinTallModeHeight="100000"
+                      WideModeConfiguration="SinglePane"
+                      TallModeConfiguration="TopBottom">
+      <fold:TwoPaneView.Pane1>
+        <Panel>
+          <controls:GameView Name="Game" />
+
+          <Grid Name="Hud" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Top" Margin="12">
+            <StackPanel Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Border Classes="chip">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Name="LevelText" Classes="hud" />
+                    <TextBlock Name="BugsText" Classes="hud" Foreground="{StaticResource SunBrush}" />
+                  </StackPanel>
+                </Border>
+                <Border Name="HingeChip" Classes="chip" IsVisible="False">
+                  <TextBlock Name="HingeText" Classes="hud" />
+                </Border>
+              </StackPanel>
+              <Border Name="HintBox"
+                      Classes="chip"
+                      HorizontalAlignment="Left"
+                      MaxWidth="340"
+                      IsHitTestVisible="False"
+                      IsVisible="False">
+                <TextBlock Name="HintText" Classes="body" Foreground="White" />
+              </Border>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+              <Border Classes="chip">
+                <TextBlock Name="ScoreText" Classes="hud" Foreground="{StaticResource SunBrush}" />
+              </Border>
+              <Button Name="PauseButton" Classes="icon" AutomationProperties.Name="Pause">
+                <Path Data="M0,0 H4 V14 H0 Z M8,0 H12 V14 H8 Z" Fill="White" />
+              </Button>
+            </StackPanel>
+          </Grid>
+        </Panel>
+      </fold:TwoPaneView.Pane1>
+      <fold:TwoPaneView.Pane2>
+        <controls:ControlDeck Name="Deck" />
+      </fold:TwoPaneView.Pane2>
+    </fold:TwoPaneView>
+
+    <!-- The title, results and pause, over the game. Side by side on a wide screen or across a fold,
+         stacked on a tall one. -->
+    <Panel Name="MenuLayer" Background="{StaticResource ScrimBrush}" IsVisible="False">
+      <fold:TwoPaneView Name="MenuPanes">
+        <fold:TwoPaneView.Pane1>
+          <!-- Shrinks to fit when a pane is short, as when the panes stack on the cover display. -->
+          <Viewbox StretchDirection="DownOnly" Margin="24">
+            <ContentControl Name="MenuHero" MaxWidth="420" />
+          </Viewbox>
+        </fold:TwoPaneView.Pane1>
+        <fold:TwoPaneView.Pane2>
+          <ScrollViewer>
+            <ContentControl Name="MenuBody" Margin="24" VerticalAlignment="Center" />
+          </ScrollViewer>
+        </fold:TwoPaneView.Pane2>
+      </fold:TwoPaneView>
+    </Panel>
+
+  </Panel>
+</UserControl>

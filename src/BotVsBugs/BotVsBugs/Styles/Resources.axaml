@@ -1,0 +1,23 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Lilita One (OFL), for everything game-like: titles, buttons, the HUD. -->
+  <FontFamily x:Key="GameFont">avares://BotVsBugs/Assets/Fonts#Lilita One</FontFamily>
+
+  <!-- .NET purple, the dotnet bot's own color, with a sunny yellow for stars and score. -->
+  <Color x:Key="NightColor">#170F2E</Color>
+  <Color x:Key="PanelColor">#251A47</Color>
+  <Color x:Key="PurpleColor">#512BD4</Color>
+  <Color x:Key="LilacColor">#9B83FF</Color>
+  <Color x:Key="SunColor">#FFE45C</Color>
+
+  <SolidColorBrush x:Key="NightBrush" Color="{StaticResource NightColor}" />
+  <SolidColorBrush x:Key="PanelBrush" Color="{StaticResource PanelColor}" />
+  <SolidColorBrush x:Key="PurpleBrush" Color="{StaticResource PurpleColor}" />
+  <SolidColorBrush x:Key="LilacBrush" Color="{StaticResource LilacColor}" />
+  <SolidColorBrush x:Key="SunBrush" Color="{StaticResource SunColor}" />
+  <SolidColorBrush x:Key="MutedBrush" Color="#B8AEDB" />
+  <SolidColorBrush x:Key="ChipBrush" Color="#CC170F2E" />
+  <SolidColorBrush x:Key="ScrimBrush" Color="#E0170F2E" />
+
+</ResourceDictionary>

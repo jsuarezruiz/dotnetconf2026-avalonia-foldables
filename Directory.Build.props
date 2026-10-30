@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <!-- The demos build Nova.Avalonia.Foldable from the submodule until it's on NuGet; pass NovaFoldableRoot
+         to build it from another checkout, such as one you're changing. -->
+    <NovaFoldableRoot Condition="'$(NovaFoldableRoot)' == ''">$(MSBuildThisFileDirectory)external/Nova.Avalonia.Foldable</NovaFoldableRoot>
+    <NovaFoldableProject>$(NovaFoldableRoot)/src/Nova.Avalonia.Foldable/Nova.Avalonia.Foldable.csproj</NovaFoldableProject>
+    <NovaFoldableSimulatorProject>$(NovaFoldableRoot)/src/Nova.Avalonia.Foldable.Simulator/Nova.Avalonia.Foldable.Simulator.csproj</NovaFoldableSimulatorProject>
+  </PropertyGroup>
+</Project>

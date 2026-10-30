@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Inkfold\Inkfold.csproj" />
+    <!-- The iPhone Duo simulator window, from Nova.Avalonia.Foldable. -->
+    <ProjectReference Include="$(NovaFoldableSimulatorProject)" />
+  </ItemGroup>
+</Project>

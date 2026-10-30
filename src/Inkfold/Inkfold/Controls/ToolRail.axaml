@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Inkfold.Controls"
+             x:Class="Inkfold.Controls.ToolRail">
+  <Border Classes="rail">
+    <StackPanel Name="Items" Spacing="2">
+      <Button Name="PenButton" Classes="icon" ToolTip.Tip="Ink pen (B)" AutomationProperties.Name="Ink pen">
+        <controls:Icon Data="{x:Static controls:Icons.PenLine}" />
+      </Button>
+      <Button Name="MarkerButton" Classes="icon" ToolTip.Tip="Marker (M)" AutomationProperties.Name="Marker">
+        <controls:Icon Data="{x:Static controls:Icons.Highlighter}" />
+      </Button>
+      <Button Name="WashButton" Classes="icon" ToolTip.Tip="Watercolor (W)" AutomationProperties.Name="Watercolor">
+        <controls:Icon Data="{x:Static controls:Icons.Droplets}" />
+      </Button>
+      <Button Name="SprayButton" Classes="icon" ToolTip.Tip="Spray (A)" AutomationProperties.Name="Spray">
+        <controls:Icon Data="{x:Static controls:Icons.SprayCan}" />
+      </Button>
+      <Button Name="EraserButton" Classes="icon" ToolTip.Tip="Eraser (E)" AutomationProperties.Name="Eraser">
+        <controls:Icon Data="{x:Static controls:Icons.Eraser}" />
+      </Button>
+      <Button Name="FillButton" Classes="icon" ToolTip.Tip="Fill (G)" AutomationProperties.Name="Fill">
+        <controls:Icon Data="{x:Static controls:Icons.PaintBucket}" />
+      </Button>
+      <Button Name="PickerButton" Classes="icon" ToolTip.Tip="Color picker (I)" AutomationProperties.Name="Color picker">
+        <controls:Icon Data="{x:Static controls:Icons.Pipette}" />
+      </Button>
+
+      <Border Name="Divider" Background="{StaticResource ChromeLineBrush}" />
+
+      <!-- Size and opacity at the thumb, on the tall rail of the open book. -->
+      <StackPanel Name="Sliders" Spacing="6" HorizontalAlignment="Center">
+        <Slider Name="SizeSlider" Orientation="Vertical" Height="96" Minimum="0" Maximum="1"
+                HorizontalAlignment="Center" ToolTip.Tip="Brush size" AutomationProperties.Name="Brush size" />
+        <Slider Name="OpacitySlider" Orientation="Vertical" Height="80" Minimum="0.05" Maximum="1"
+                HorizontalAlignment="Center" ToolTip.Tip="Opacity" AutomationProperties.Name="Opacity" />
+      </StackPanel>
+
+      <Button Name="ColorWell" Classes="icon" ToolTip.Tip="Colors" AutomationProperties.Name="Colors">
+        <!-- The color on a ring of paper, so dark inks still read against the rail. -->
+        <Border Width="30" Height="30" CornerRadius="15" Background="#F6F1E6" Padding="3">
+          <Border Name="ColorDot" CornerRadius="12" />
+        </Border>
+      </Button>
+    </StackPanel>
+  </Border>
+</UserControl>
