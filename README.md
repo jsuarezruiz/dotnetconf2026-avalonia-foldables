@@ -1,6 +1,10 @@
-# Avalonia on foldables
+# Unfold your UI
 
-Two apps from our .NET Conf 2026 session, built with Avalonia and [Nova.Avalonia.Foldable](https://github.com/jsuarezruiz/Nova.Avalonia.Foldable). They run on the iPhone Duo, Android foldables and the desktop, where a simulator folds the phone in 3D.
+Building awesome foldable apps with .NET and Avalonia. This is the material from my .NET Conf 2026 session: the slides and two apps made for it.
+
+Foldables stopped being a niche this year. The iPhone Duo is in stores, and Android 17 no longer lets large-screen apps opt out of resizing. The session covers the four postures, why the fold is just a rectangle, and how [Nova.Avalonia.Foldable](https://github.com/jsuarezruiz/Nova.Avalonia.Foldable) brings it to Avalonia from one shared codebase.
+
+The slides are in [Unfold Your UI Foldable Apps with .NET and Avalonia.pptx](Unfold%20Your%20UI%20Foldable%20Apps%20with%20.NET%20and%20Avalonia.pptx), with speaker notes. They come in four parts: core concepts, the library, eleven samples (both apps below among them), and tips for keeping users where they were when the device folds.
 
 ## Bot vs Bugs
 
@@ -24,6 +28,15 @@ dotnet run --project src/BotVsBugs/BotVsBugs.Desktop
 ```
 
 Swap in `Inkfold` for the paint app, or build the `.iOS` and `.Android` heads for a device. [STATUS.md](STATUS.md) lists what's been tested where.
+
+The session's other demos, the Sample and Guide To the Stars, live in the [library's repo](https://github.com/jsuarezruiz/Nova.Avalonia.Foldable/tree/main/samples).
+
+## Learn more
+
+- [Nova.Avalonia.Foldable docs](https://jsuarezruiz.github.io/Nova.Avalonia.Foldable/): postures, `TwoPaneView`, testing without a device, and setting up the iPhone Duo simulator and the Pixel Fold emulator
+- [Avalonia Vignettes](https://github.com/jsuarezruiz/avalonia_vignettes), where Guide To the Stars comes from
+
+Reports from real foldables are welcome. I'm [@jsuarezruiz](https://github.com/jsuarezruiz) everywhere.
 
 ## Credits
 
