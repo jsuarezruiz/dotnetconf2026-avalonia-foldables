@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fold="using:Nova.Avalonia.Foldable"
+             xmlns:views="using:Inbox.Views"
+             x:Class="Inbox.Views.MainView"
+             fold:Fold.IsEnabled="True"
+             Background="{StaticResource NightBrush}">
+
+  <!-- List and detail. Side by side when the screen is wide or the fold divides it; one pane on a phone
+       or a cover display, however tall (MinTallModeHeight is out of reach); stacked only when a
+       horizontal fold divides the screen. That's tabletop: content up, controls down, so BottomTop
+       puts the message on the upright half and the list on the half lying on the table. -->
+  <fold:TwoPaneView Name="Panes"
+                    PanePriority="Pane1"
+                    MinWideModeWidth="641"
+                    MinTallModeHeight="100000"
+                    TallModeConfiguration="BottomTop">
+    <fold:TwoPaneView.Pane1>
+      <views:InboxView Name="InboxPane" />
+    </fold:TwoPaneView.Pane1>
+    <fold:TwoPaneView.Pane2>
+      <views:MessageView Name="MessagePane" />
+    </fold:TwoPaneView.Pane2>
+  </fold:TwoPaneView>
+
+</UserControl>

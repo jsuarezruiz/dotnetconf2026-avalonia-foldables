@@ -81,7 +81,9 @@ public sealed class GameView : Control
     private GamePhase? _lastPhase;
     private double _scale = 1d;
     private Point _origin;
-    private bool _isDragging;
+    // The pointer dragging the bot: only it moves the sling and lets go. A second finger, like a thumb
+    // holding the phone, is ignored.
+    private IPointer? _dragPointer;
     private double _dragPull;
     private double _aimAngle = DefaultAim;
 
@@ -135,7 +137,7 @@ public sealed class GameView : Control
     /// <summary>
     /// Gets how far the band is pulled back right now, by a finger or by the hinge, from 0 to 1.
     /// </summary>
-    public double Pull => _isDragging ? _dragPull : _hinge.IsArmed ? _hinge.Pull : 0d;
+    public double Pull => IsDragging ? _dragPull : _hinge.IsArmed ? _hinge.Pull : 0d;
 
     /// <summary>
     /// Occurs when the hinge moves or arms, so the gauges can follow it.
@@ -147,8 +149,7 @@ public sealed class GameView : Control
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        _lastFrame = TimeSpan.Zero;
-        _ticker.Start();
+        UpdateTicker();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -169,31 +170,48 @@ public sealed class GameView : Control
         }
         else if (change.Property == WorldProperty)
         {
-            _isDragging = false;
+            _dragPointer = null;
             _lastPhase = null;
             _aimAngle = DefaultAim;
             AimChanged?.Invoke(this, EventArgs.Empty);
             SyncHinge();
+            UpdateTicker();
             InvalidateVisual();
         }
         else if (change.Property == IsPausedProperty)
         {
-            _isDragging = false;
+            _dragPointer = null;
             SyncHinge();
+            UpdateTicker();
             InvalidateVisual();
+        }
+    }
+
+    // Frames only while the game runs: paused, it asks for none, so the device can rest. The pause itself
+    // redraws once.
+    private void UpdateTicker()
+    {
+        if (IsPaused || TopLevel.GetTopLevel(this) is null)
+        {
+            _ticker.Stop();
+            return;
+        }
+
+        if (!_ticker.IsRunning)
+        {
+            // The ticker counts from zero again.
+            _lastFrame = TimeSpan.Zero;
+            _ticker.Start();
         }
     }
 
     private void OnFrame(TimeSpan elapsed)
     {
-        var delta = elapsed - _lastFrame;
+        // A ticker that resumed after leaving the tree counts from zero again: that frame moves nothing.
+        var delta = elapsed >= _lastFrame ? elapsed - _lastFrame : TimeSpan.Zero;
         _lastFrame = elapsed;
 
-        if (World is not { } world)
-            return;
-
-        // Paused, nothing moves; the pause itself redraws once.
-        if (IsPaused)
+        if (World is not { } world || IsPaused)
             return;
 
         world.Update(delta.TotalSeconds);
@@ -202,6 +220,10 @@ public sealed class GameView : Control
             SyncHinge();
 
         InvalidateVisual();
+
+        // The level is over and the dust has settled: nothing moves behind the result, so ask for no more frames.
+        if (world.Phase is GamePhase.Won or GamePhase.Lost && world.Particles.Count == 0 && world.Popups.Count == 0)
+            _ticker.Stop();
     }
 
     // The hinge only listens while a bot waits on the sling and the game runs.
@@ -218,15 +240,22 @@ public sealed class GameView : Control
 
     private void OnHingeFired(double power)
     {
-        if (World is { CanLaunch: true } world && !_isDragging && !IsPaused)
+        if (World is { CanLaunch: true } world && !IsDragging && !IsPaused)
+        {
             world.Launch(AimAngle, power);
+            return;
+        }
+
+        // The shot was dropped, a finger is on the bot: the trigger stopped itself when it fired, and the
+        // phase won't change to start it again, so listen for the next fold.
+        SyncHinge();
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
 
-        if (World is not { CanLaunch: true } || IsPaused)
+        if (World is not { CanLaunch: true } || IsPaused || IsDragging)
             return;
 
         var point = ToWorld(e.GetPosition(this));
@@ -234,7 +263,7 @@ public sealed class GameView : Control
         if ((point - bot).Length() > GrabBot && (point - GameWorld.SlingAnchor).Length() > GrabSling)
             return;
 
-        _isDragging = true;
+        _dragPointer = e.Pointer;
         _dragPull = Pull;
         e.Pointer.Capture(this);
         e.Handled = true;
@@ -245,7 +274,7 @@ public sealed class GameView : Control
     {
         base.OnPointerMoved(e);
 
-        if (_isDragging)
+        if (e.Pointer == _dragPointer)
             Drag(ToWorld(e.GetPosition(this)));
     }
 
@@ -253,10 +282,10 @@ public sealed class GameView : Control
     {
         base.OnPointerReleased(e);
 
-        if (!_isDragging)
+        if (e.Pointer != _dragPointer)
             return;
 
-        _isDragging = false;
+        _dragPointer = null;
         e.Pointer.Capture(null);
         e.Handled = true;
 
@@ -267,8 +296,11 @@ public sealed class GameView : Control
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {
         base.OnPointerCaptureLost(e);
-        _isDragging = false;
+        if (e.Pointer == _dragPointer)
+            _dragPointer = null;
     }
+
+    private bool IsDragging => _dragPointer is not null;
 
     // The shot flies away from the finger, through the sling.
     private void Drag(WorldPoint point)

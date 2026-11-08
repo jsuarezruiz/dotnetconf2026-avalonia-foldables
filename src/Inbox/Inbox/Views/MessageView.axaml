@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:app="using:Inbox"
+             xmlns:models="using:Inbox.Models"
+             x:Class="Inbox.Views.MessageView"
+             x:DataType="app:InboxViewModel"
+             Background="{StaticResource NightBrush}">
+
+  <Panel>
+    <!-- Nothing open yet. -->
+    <StackPanel IsVisible="{Binding !HasSelection}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="12">
+      <Path Classes="line" Data="{StaticResource MailIcon}" Width="44" Height="44" Stroke="{StaticResource LineBrush}" StrokeThickness="1.5" />
+      <TextBlock Classes="muted" Text="Pick a message to read it here" />
+    </StackPanel>
+
+    <DockPanel IsVisible="{Binding HasSelection}">
+      <!-- Back, shown only when this pane is on its own. -->
+      <Button Name="BackButton"
+              DockPanel.Dock="Top"
+              Classes="back"
+              HorizontalAlignment="Left"
+              Margin="6,4,0,0"
+              IsVisible="False"
+              AutomationProperties.Name="Back to the inbox">
+        <StackPanel Orientation="Horizontal" Spacing="7">
+          <Path Data="{StaticResource ChevronLeft}" />
+          <TextBlock Text="Inbox" />
+        </StackPanel>
+      </Button>
+
+      <!-- The reply, at the bottom: near the thumbs, and just above the fold in tabletop. -->
+      <Border DockPanel.Dock="Bottom" Padding="16,10,16,16">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+          <TextBox Name="ReplyBox"
+                   Classes="reply"
+                   Text="{Binding ReplyDraft}"
+                   PlaceholderText="{Binding ReplyHint}"
+                   ClearSelectionOnLostFocus="False"
+                   AutomationProperties.Name="Reply" />
+          <Button Name="SendButton"
+                  Grid.Column="1"
+                  Classes="icon send"
+                  VerticalAlignment="Bottom"
+                  AutomationProperties.Name="Send">
+            <PathIcon Data="{StaticResource SendIcon}" Foreground="White" />
+          </Button>
+        </Grid>
+      </Border>
+
+      <!-- The open message is the reader's data context: with none open, its bindings have nothing to
+           read, rather than a null to report on. -->
+      <ScrollViewer Name="Reader" DataContext="{Binding SelectedMessage}">
+        <StackPanel x:DataType="models:Message" Margin="28,20,28,24" Spacing="20" MaxWidth="720" HorizontalAlignment="Left">
+          <TextBlock Classes="headline" Text="{Binding Subject}" />
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <Border Classes="avatar" Background="{Binding Avatar}">
+              <TextBlock Text="{Binding Initials}" />
+            </Border>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+              <TextBlock Classes="from" Text="{Binding From}" />
+              <TextBlock Classes="muted" Text="{Binding Date}" />
+            </StackPanel>
+          </Grid>
+          <TextBlock Name="Body" Classes="body" Text="{Binding Body}" />
+        </StackPanel>
+      </ScrollViewer>
+    </DockPanel>
+  </Panel>
+
+</UserControl>

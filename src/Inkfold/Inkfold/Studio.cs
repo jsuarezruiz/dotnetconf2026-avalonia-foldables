@@ -19,6 +19,7 @@ public sealed class Studio
     private readonly DispatcherTimer _autosave;
     private readonly List<SKColor> _recentColors = [];
     private int _seed = Environment.TickCount;
+    private bool _isPressing;
 
     // The tool to go back to once the picker has picked a color.
     private ToolKind? _beforePicker;
@@ -217,34 +218,126 @@ public sealed class Studio
     /// Presses the paint of every visible layer onto the facing half of the page, as folding wet paper
     /// does, across the line the device folds along.
     /// </summary>
-    public void Press(PressFold fold)
+    /// <remarks>
+    /// The press runs its filters on copies of the layers on another thread, so the screen keeps moving
+    /// while the device opens; the prints go in once they're ready. Nothing it does throws: callers can
+    /// discard the task.
+    /// </remarks>
+    public async Task PressAsync(PressFold fold)
     {
-        IsPressArmed = false;
-        var steps = new List<PixelsStep>();
-        lock (Document.Sync)
+        if (_isPressing)
         {
-            foreach (var layer in Document.Layers)
-            {
-                if (!layer.IsVisible)
-                    continue;
-
-                var before = Pixels.Copy(layer.Pixels, Document.Bounds);
-                InkPress.Apply(layer.Pixels, _seed++, fold);
-                layer.Refresh();
-                steps.Add(new PixelsStep(layer, Document.Bounds, before, Pixels.Copy(layer.Pixels, Document.Bounds)));
-            }
-        }
-
-        SettingsChanged?.Invoke(this, EventArgs.Empty);
-        if (steps.Count == 0)
-        {
-            Notice?.Invoke(this, "Every layer is hidden: there's no paint to press.");
+            Notice?.Invoke(this, "Still pressing the last one.");
             return;
         }
 
-        History.Push(new StepGroup(steps));
-        Painted();
-        Pressed?.Invoke(this, new PressedEventArgs(steps, fold));
+        IsPressArmed = false;
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+        _isPressing = true;
+
+        var document = Document;
+        var jobs = new List<(Layer Layer, int Version, SKBitmap Before, SKBitmap After, int Seed)>();
+        string? notice = null;
+
+        // The copies are the history's once it has them; until then they're disposed here, whatever happens.
+        var handedOver = false;
+        try
+        {
+            // Copies of the visible layers as they are now: the press works on these, off the lock.
+            lock (document.Sync)
+            {
+                foreach (var layer in document.Layers)
+                {
+                    if (layer.IsVisible)
+                        jobs.Add((layer, layer.Version, Pixels.Copy(layer.Pixels, document.Bounds), Pixels.Copy(layer.Pixels, document.Bounds), _seed++));
+                }
+            }
+
+            if (jobs.Count == 0)
+            {
+                notice = "Every layer is hidden: there's no paint to press.";
+                return;
+            }
+
+            await Task.Run(() =>
+            {
+                foreach (var job in jobs)
+                    InkPress.Apply(job.After, job.Seed, fold);
+            });
+
+            // Back on the UI thread. Paint, layers or visibility that changed meanwhile would be lost or
+            // missed under the print, so the press only goes in on the page it was made from.
+            List<PixelsStep>? steps = null;
+            lock (document.Sync)
+            {
+                var unchanged = Document == document && !document.IsDisposed
+                    && jobs.TrueForAll(job => document.Layers.Contains(job.Layer) && job.Layer.IsVisible && job.Layer.Version == job.Version)
+                    && document.Layers.Count(layer => layer.IsVisible) == jobs.Count;
+                if (unchanged)
+                    steps = PasteAll(jobs, document.Bounds);
+            }
+
+            if (steps is null)
+            {
+                notice = "The page changed while it was being pressed, so the press was left out.";
+                return;
+            }
+
+            History.Push(new StepGroup(steps));
+            handedOver = true;
+            Painted();
+            Pressed?.Invoke(this, new PressedEventArgs(steps, fold));
+        }
+        catch (Exception)
+        {
+            // Once the history has the press, it happened: a failing listener doesn't make it fail.
+            if (!handedOver)
+                notice = "The press couldn't be made.";
+        }
+        finally
+        {
+            if (!handedOver)
+            {
+                foreach (var job in jobs)
+                {
+                    job.Before.Dispose();
+                    job.After.Dispose();
+                }
+            }
+
+            _isPressing = false;
+
+            // Here rather than after the try: the paths that leave early return from inside it.
+            if (notice is not null)
+                Notice?.Invoke(this, notice);
+        }
+    }
+
+    // Prints every layer or none: one that fails puts back the layers already printed.
+    private static List<PixelsStep> PasteAll(List<(Layer Layer, int Version, SKBitmap Before, SKBitmap After, int Seed)> jobs, SKRectI bounds)
+    {
+        var done = 0;
+        try
+        {
+            foreach (var job in jobs)
+            {
+                Pixels.Paste(job.After, job.Layer.Pixels, 0, 0);
+                job.Layer.Refresh();
+                done++;
+            }
+        }
+        catch
+        {
+            for (var i = 0; i < done; i++)
+            {
+                Pixels.Paste(jobs[i].Before, jobs[i].Layer.Pixels, 0, 0);
+                jobs[i].Layer.Refresh();
+            }
+
+            throw;
+        }
+
+        return jobs.ConvertAll(job => new PixelsStep(job.Layer, bounds, job.Before, job.After));
     }
 
     public void ClearLayer()
@@ -273,8 +366,15 @@ public sealed class Studio
             Restored();
     }
 
+    // Each layer keeps the page's pixels twice, about 15 MB at the default size, on top of the undo
+    // history: a phone runs out of memory long before a person runs out of layers.
+    public const int MaxLayers = 8;
+
     public void AddLayer()
     {
+        if (!HasRoomForLayer())
+            return;
+
         var layer = new Layer(Document.NextLayerName(), Document.Width, Document.Height);
         var index = Document.ActiveIndex + 1;
         var step = new LayerStep(layer, index, removed: false);
@@ -285,6 +385,9 @@ public sealed class Studio
 
     public void DuplicateLayer()
     {
+        if (!HasRoomForLayer())
+            return;
+
         Layer copy;
         lock (Document.Sync)
             copy = Document.Active.Clone($"{Document.Active.Name} copy");
@@ -293,6 +396,15 @@ public sealed class Studio
         step.Redo(Document);
         History.Push(step);
         LayersEdited();
+    }
+
+    private bool HasRoomForLayer()
+    {
+        if (Document.Layers.Count < MaxLayers)
+            return true;
+
+        Notice?.Invoke(this, $"A drawing holds up to {MaxLayers} layers.");
+        return false;
     }
 
     public void DeleteLayer()
@@ -408,13 +520,14 @@ public sealed class Studio
     }
 
     // Saves without throwing: a full disk or a missing folder shows a notice instead of losing the error.
+    // Autosaves aren't awaited, so anything thrown here would otherwise vanish, or end the app where awaited.
     private async Task SaveAsync(Document document)
     {
         try
         {
             await Gallery.SaveAsync(document);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception)
         {
             Notice?.Invoke(this, "The drawing couldn't be saved.");
         }

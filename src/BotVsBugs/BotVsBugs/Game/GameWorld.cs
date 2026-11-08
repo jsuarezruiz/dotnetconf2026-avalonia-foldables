@@ -292,6 +292,13 @@ public sealed class GameWorld
         {
             _accumulator -= StepSeconds;
             Step();
+
+            // The level was just decided: the steps still queued would award the result again.
+            if (Phase is GamePhase.Won or GamePhase.Lost)
+            {
+                _accumulator = 0d;
+                break;
+            }
         }
 
         if (_changed)

@@ -28,16 +28,16 @@ public partial class MainView : UserControl
     // Half the widest fold band, the iPhone Duo's 40 points, and a little more.
     private const double FoldAllowance = 24;
 
-    // The press counts a fold below this as closed, and above the other as open again.
-    private const double ClosedAngle = 25;
-    private const double OpenAngle = 140;
-
     private readonly Studio _studio;
+    private readonly PressTrigger _press = new();
     private readonly DispatcherTimer _toastTimer;
     private TopLevel? _topLevel;
     private StageLayout _layout;
     private bool _panelOnLeft;
-    private bool _closedForPress;
+
+    // The fold as the layout last saw it, without the angle: folding moves the angle many times a frame,
+    // and only the posture and the fold's place change the layout.
+    private FoldState? _layoutFold;
 
     // The line the armed press folds along: the device's fold when it was armed, down the page or
     // across it. It stays as armed: the screen may turn while the device closes and opens.
@@ -70,7 +70,7 @@ public partial class MainView : UserControl
         GalleryLayer.CloseRequested += (_, _) => GalleryLayer.IsVisible = false;
         Canvas.FittedChanged += (_, _) => FitButton.IsVisible = !Canvas.IsFitted;
         FitButton.Click += (_, _) => Canvas.FitToView(animate: true);
-        PressNowButton.Click += (_, _) => _studio.Press(_pressFold);
+        PressNowButton.Click += (_, _) => _ = _studio.PressAsync(_pressFold);
         PressCancelButton.Click += (_, _) => _studio.ArmPress(false);
         _studio.SettingsChanged += (_, _) => UpdatePressBanner();
         _studio.Notice += (_, message) => ShowToast(message);
@@ -139,7 +139,13 @@ public partial class MainView : UserControl
         if (change.Property == Fold.StateProperty && change.NewValue is FoldState state)
         {
             WatchHingeForPress(state);
-            ApplyLayout();
+
+            var fold = state with { HingeAngle = null };
+            if (fold != _layoutFold)
+            {
+                _layoutFold = fold;
+                ApplyLayout();
+            }
         }
     }
 
@@ -357,12 +363,12 @@ public partial class MainView : UserControl
         _pressFold = state.Orientation == FoldOrientation.Horizontal ? PressFold.Horizontal : PressFold.Vertical;
         if (state.IsFoldable)
         {
-            _closedForPress = false;
+            _press.Arm();
             _studio.ArmPress(true);
         }
         else
         {
-            _studio.Press(_pressFold);
+            _ = _studio.PressAsync(_pressFold);
         }
     }
 
@@ -371,23 +377,21 @@ public partial class MainView : UserControl
         if (!_studio.IsPressArmed)
             return;
 
-        var angle = state.HingeAngle;
-        if (state.Posture == DevicePosture.Closed || angle < ClosedAngle)
+        switch (_press.Update(state))
         {
-            _closedForPress = true;
-            UpdatePressBanner();
-        }
-        else if (_closedForPress && (state.Posture == DevicePosture.Flat || angle > OpenAngle))
-        {
-            _closedForPress = false;
-            _studio.Press(_pressFold);
+            case PressStep.Closed:
+                UpdatePressBanner();
+                break;
+            case PressStep.Opened:
+                _ = _studio.PressAsync(_pressFold);
+                break;
         }
     }
 
     private void UpdatePressBanner()
     {
         PressBanner.IsVisible = _studio.IsPressArmed;
-        PressText.Text = _closedForPress
+        PressText.Text = _press.IsClosed
             ? "Now open it to see the print."
             : _pressFold == PressFold.Horizontal
                 ? "Close the phone, then open it: the paint presses onto the other half of the page."
@@ -402,16 +406,19 @@ public partial class MainView : UserControl
         _toastTimer.Start();
     }
 
-    // A PNG of the page as it looks, paper and all.
+    // A PNG of the page as it looks, paper and all. An async void handler: anything it throws would end
+    // the app, so every failure becomes a message.
     private async void Export()
     {
         var document = _studio.Document;
         var name = string.Concat(document.Name.Select(c => Path.GetInvalidFileNameChars().Contains(c) || c == ':' ? '-' : c)) + ".png";
-        using var image = DocumentRenderer.RenderComposite(document, true);
-        using var png = image.Encode(SKEncodedImageFormat.Png, 100);
 
         try
         {
+            using var image = DocumentRenderer.RenderComposite(document, true);
+            using var png = image.Encode(SKEncodedImageFormat.Png, 100)
+                ?? throw new InvalidOperationException("The page couldn't be encoded as a PNG.");
+
             if (_topLevel?.StorageProvider is { CanSave: true } storage)
             {
                 var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
@@ -439,7 +446,7 @@ public partial class MainView : UserControl
                 ShowToast($"Exported {name} to Inkfold's documents");
             }
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception)
         {
             ShowToast($"Couldn't export: {exception.Message}");
         }

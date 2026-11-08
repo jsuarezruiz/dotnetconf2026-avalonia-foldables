@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -57,7 +58,19 @@ public partial class GalleryView : UserControl
 
         await studio.SaveNow();
         Items.Children.Clear();
-        var items = studio.Gallery.List();
+
+        // An async void method: an exception here would end the app, so a gallery that can't be read says so.
+        IReadOnlyList<GalleryItem> items;
+        try
+        {
+            items = studio.Gallery.List();
+        }
+        catch (Exception)
+        {
+            CountText.Text = "The drawings couldn't be listed";
+            return;
+        }
+
         CountText.Text = items.Count == 1 ? "1 drawing" : $"{items.Count} drawings";
         foreach (var item in items)
             Items.Children.Add(CreateCard(studio, item));

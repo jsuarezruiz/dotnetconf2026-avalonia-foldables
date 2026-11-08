@@ -60,10 +60,14 @@ public sealed class PixelsStep(Layer layer, SKRectI area, SKBitmap before, SKBit
 /// </summary>
 public sealed class LayerStep(Layer layer, int index, bool removed) : IHistoryStep
 {
+    // Whether the step is done (it's on the undo stack) rather than undone (on the redo stack).
+    private bool _applied;
+
     public long Bytes => removed ? (long)layer.Pixels.ByteCount : 0;
 
     public void Undo(Document document)
     {
+        _applied = false;
         if (removed)
             Insert(document);
         else
@@ -72,16 +76,19 @@ public sealed class LayerStep(Layer layer, int index, bool removed) : IHistorySt
 
     public void Redo(Document document)
     {
+        _applied = true;
         if (removed)
             Remove(document);
         else
             Insert(document);
     }
 
-    // A layer that's out of the document now only lives here.
+    // The layer goes only when no step left can bring it back: a delete that can't be undone any more, or
+    // an add that was undone and can't be redone. An add leaving the history while a later delete of the
+    // same layer is still in it must keep the layer for that delete's undo.
     public void Discard(Document document)
     {
-        if (!document.Layers.Contains(layer))
+        if (removed == _applied && !document.Layers.Contains(layer))
             layer.Dispose();
     }
 
@@ -91,6 +98,9 @@ public sealed class LayerStep(Layer layer, int index, bool removed) : IHistorySt
         {
             document.Layers.Insert(index, layer);
             document.ActiveIndex = index;
+
+            // Its file was deleted if a save ran while the layer was out of the document, so write it again.
+            layer.SavedVersion = -1;
         }
     }
 

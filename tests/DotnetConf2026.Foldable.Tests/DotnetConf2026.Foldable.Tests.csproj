@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The apps' fold logic and game rules, without a device: the same idea as the talk's headless tests. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless.XUnit" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BotVsBugs\BotVsBugs\BotVsBugs.csproj" />
+    <ProjectReference Include="..\..\src\Inbox\Inbox\Inbox.csproj" />
+    <ProjectReference Include="..\..\src\Inkfold\Inkfold\Inkfold.csproj" />
+  </ItemGroup>
+</Project>

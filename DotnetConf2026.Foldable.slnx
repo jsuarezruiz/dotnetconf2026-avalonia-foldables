@@ -9,6 +9,16 @@
       <Deploy />
     </Project>
   </Folder>
+  <Folder Name="/Inbox/">
+    <Project Path="src/Inbox/Inbox/Inbox.csproj" />
+    <Project Path="src/Inbox/Inbox.Android/Inbox.Android.csproj">
+      <Deploy />
+    </Project>
+    <Project Path="src/Inbox/Inbox.Desktop/Inbox.Desktop.csproj" />
+    <Project Path="src/Inbox/Inbox.iOS/Inbox.iOS.csproj">
+      <Deploy />
+    </Project>
+  </Folder>
   <Folder Name="/Inkfold/">
     <Project Path="src/Inkfold/Inkfold/Inkfold.csproj" />
     <Project Path="src/Inkfold/Inkfold.Android/Inkfold.Android.csproj">
@@ -18,5 +28,8 @@
     <Project Path="src/Inkfold/Inkfold.iOS/Inkfold.iOS.csproj">
       <Deploy />
     </Project>
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DotnetConf2026.Foldable.Tests/DotnetConf2026.Foldable.Tests.csproj" />
   </Folder>
 </Solution>

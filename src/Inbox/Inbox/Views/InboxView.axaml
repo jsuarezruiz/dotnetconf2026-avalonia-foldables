@@ -1,0 +1,60 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:app="using:Inbox"
+             xmlns:models="using:Inbox.Models"
+             x:Class="Inbox.Views.InboxView"
+             x:DataType="app:InboxViewModel"
+             Background="{StaticResource PaneBrush}">
+
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Margin="20,18,20,10" Spacing="2">
+      <TextBlock Classes="title" Text="Inbox" />
+      <TextBlock Classes="muted" Text="{Binding CountText}" />
+      <TextBox Name="SearchBox"
+               Classes="search clearButton"
+               Margin="0,12,0,0"
+               Text="{Binding SearchText}"
+               PlaceholderText="Search"
+               AutomationProperties.Name="Search messages">
+        <TextBox.InnerLeftContent>
+          <Path Classes="line" Data="{StaticResource SearchIcon}" Width="16" Height="16" Margin="12,0,2,0" />
+        </TextBox.InnerLeftContent>
+      </TextBox>
+    </StackPanel>
+
+    <Panel>
+      <!-- The selection follows the open message one way: a search that hides it mustn't close it. -->
+      <ListBox Name="List"
+               Classes="mail"
+               ItemsSource="{Binding VisibleMessages}"
+               SelectedItem="{Binding SelectedMessage, Mode=OneWay}"
+               AutomationProperties.Name="Messages">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="models:Message">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+              <Border Classes="avatar" Background="{Binding Avatar}">
+                <TextBlock Text="{Binding Initials}" />
+              </Border>
+              <StackPanel Grid.Column="1" Spacing="2">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <TextBlock Classes="from" Text="{Binding From}" />
+                  <TextBlock Grid.Column="1" Classes="time" Text="{Binding Time}" />
+                </Grid>
+                <TextBlock Classes="subject" Text="{Binding Subject}" />
+                <TextBlock Classes="preview" Text="{Binding Preview}" />
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <TextBlock Classes="muted"
+                 IsVisible="{Binding !HasResults}"
+                 HorizontalAlignment="Center"
+                 Margin="20,40"
+                 TextWrapping="Wrap"
+                 Text="No messages match the search" />
+    </Panel>
+  </DockPanel>
+
+</UserControl>

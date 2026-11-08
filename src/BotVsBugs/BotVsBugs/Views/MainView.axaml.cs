@@ -3,8 +3,10 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -21,6 +23,9 @@ public partial class MainView : UserControl
     private static readonly TimeSpan HintTime = TimeSpan.FromSeconds(7);
     private static readonly Thickness HudMargin = new(12);
 
+    // The gap the HUD leaves on each side of the fold.
+    private const double FoldClearance = 12;
+
     private readonly DispatcherTimer _hintTimer = new() { Interval = HintTime };
     private GameWorld? _world;
     private TopLevel? _topLevel;
@@ -35,6 +40,7 @@ public partial class MainView : UserControl
         Game.AimChanged += (_, _) => Deck.Aim = Game.AimAngle;
         Game.HingeChanged += (_, _) => ShowHinge();
         PlayPanes.ModeChanged += (_, _) => ShowHinge();
+        Hud.SizeChanged += (_, _) => KeepHudOffFold();
         _hintTimer.Tick += (_, _) => HideHint();
 
         Load(Progress.NextLevel);
@@ -55,6 +61,12 @@ public partial class MainView : UserControl
             insets.SafeAreaChanged += OnSafeAreaChanged;
         }
 
+        // Leaving the app, or the system's back, pauses a level in play.
+        if (_topLevel is not null)
+            _topLevel.BackRequested += OnBackRequested;
+        if (Application.Current?.TryGetFeature<IActivatableLifetime>() is { } lifetime)
+            lifetime.Deactivated += OnDeactivated;
+
         ApplySafeArea();
     }
 
@@ -62,9 +74,21 @@ public partial class MainView : UserControl
     {
         if (_topLevel?.InsetsManager is { } insets)
             insets.SafeAreaChanged -= OnSafeAreaChanged;
+        if (_topLevel is not null)
+            _topLevel.BackRequested -= OnBackRequested;
+        if (Application.Current?.TryGetFeature<IActivatableLifetime>() is { } lifetime)
+            lifetime.Deactivated -= OnDeactivated;
         _topLevel = null;
 
         base.OnDetachedFromVisualTree(e);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == Fold.StateProperty)
+            KeepHudOffFold();
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -80,6 +104,24 @@ public partial class MainView : UserControl
 
     private void OnSafeAreaChanged(object? sender, EventArgs e) => ApplySafeArea();
 
+    // Away from the app, the level waits on the pause menu: nothing moves, and the hinge stops listening,
+    // so a fold armed before leaving can't fire on the way back.
+    private void OnDeactivated(object? sender, ActivatedEventArgs e)
+    {
+        if (!MenuLayer.IsVisible)
+            Pause();
+    }
+
+    // Back during a level pauses it rather than leaving the app; on a menu, the system decides.
+    private void OnBackRequested(object? sender, RoutedEventArgs e)
+    {
+        if (MenuLayer.IsVisible || _world is null || _world.Phase is GamePhase.Won or GamePhase.Lost)
+            return;
+
+        Pause();
+        e.Handled = true;
+    }
+
     // The game draws edge to edge; the HUD and menus keep clear of the camera and the corners.
     private void ApplySafeArea()
     {
@@ -91,6 +133,33 @@ public partial class MainView : UserControl
             HudMargin.Bottom);
         Deck.Padding = new Thickness(safe.Left, 0d, safe.Right, safe.Bottom);
         MenuPanes.Margin = safe;
+    }
+
+    // Nothing to read or tap on the crease. FoldBounds is in the top level's coordinates, so it's mapped
+    // into the HUD's before it's measured against; the HUD's start keeps to the left page, its end to the right.
+    private void KeepHudOffFold()
+    {
+        var start = double.PositiveInfinity;
+        var end = double.PositiveInfinity;
+
+        var state = Fold.GetState(this);
+        if (state is { Orientation: FoldOrientation.Vertical, FoldBounds: { } fold }
+            && state.Posture != DevicePosture.Closed
+            && _topLevel?.TransformToVisual(Hud) is { } toHud)
+        {
+            var local = fold.TransformToAABB(toHud);
+            if (local.Right > 0 && local.Left < Hud.Bounds.Width)
+            {
+                start = Math.Max(0d, local.Left - FoldClearance);
+                end = Math.Max(0d, Hud.Bounds.Width - local.Right - FoldClearance);
+            }
+        }
+
+        // Set only when it changes: folding sends a new state for every move of the hinge.
+        if (HudStart.MaxWidth != start)
+            HudStart.MaxWidth = start;
+        if (HudEnd.MaxWidth != end)
+            HudEnd.MaxWidth = end;
     }
 
     // Builds the level and shows it, frozen until it's played.

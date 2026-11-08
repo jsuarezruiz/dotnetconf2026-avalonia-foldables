@@ -188,13 +188,52 @@ public sealed class PaintCanvas : Control
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
+
+        // Folding moves the hinge angle many times a frame; only the posture and the fold's place matter here.
+        if (change.Property == Fold.StateProperty
+            && change.OldValue is FoldState before && change.NewValue is FoldState after
+            && before with { HingeAngle = null } == after with { HingeAngle = null })
+        {
+            return;
+        }
+
         if (change.Property == BoundsProperty || change.Property == Fold.StateProperty || change.Property == FitInsetsProperty)
         {
+            // A fold is a resize: a zoomed-in view keeps the spot the person was looking at in the middle,
+            // rather than holding a pixel offset that now points somewhere else.
+            Point? looking = null;
+            if (!_fitted && _studio is not null)
+            {
+                var size = change.Property == BoundsProperty && change.OldValue is Rect old ? old.Size : Bounds.Size;
+                var insets = change.Property == FitInsetsProperty && change.OldValue is Thickness was ? was : FitInsets;
+                var center = ViewCenter(size, insets);
+                looking = new Point((center.X - _origin.X) / _scale, (center.Y - _origin.Y) / _scale);
+            }
+
             UpdateBand();
             if (_fitted)
+            {
                 FitToView();
+            }
+            else if (looking is { } page)
+            {
+                _viewTicker.Stop();
+                var center = ViewCenter(Bounds.Size, FitInsets);
+                _origin = new Point(center.X - (page.X * _scale), center.Y - (page.Y * _scale));
+            }
+
             InvalidateVisual();
         }
+    }
+
+    // The middle of the area the page shows in, between the insets, in the page's own coordinates with
+    // the fold band taken out. The band is the one in effect when it's called.
+    private Point ViewCenter(Size size, Thickness insets)
+    {
+        var width = size.Width - (_hasBand ? _bandWidth : 0);
+        return new Point(
+            insets.Left + ((width - insets.Left - insets.Right) / 2),
+            insets.Top + ((size.Height - insets.Top - insets.Bottom) / 2));
     }
 
     public override void Render(DrawingContext context)
@@ -258,6 +297,13 @@ public sealed class PaintCanvas : Control
 
         if (type == PointerType.Touch)
         {
+            // A palm resting while the pen draws: ignore it, so the line carries on and the page stays put.
+            if (_toolPointer?.Type == PointerType.Pen)
+            {
+                e.Handled = true;
+                return;
+            }
+
             _touches[e.Pointer] = point.Position;
             e.Pointer.Capture(this);
 

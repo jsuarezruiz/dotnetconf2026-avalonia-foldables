@@ -19,7 +19,8 @@ public sealed class AimDial : Control
     private static readonly IBrush TrackBrush = new SolidColorBrush(Color.Parse("#4A3A80"));
     private static readonly IBrush NeedleBrush = new SolidColorBrush(Color.Parse("#FFE45C"));
 
-    private bool _isDragging;
+    // The pointer turning the dial: another finger on it is ignored.
+    private IPointer? _dragPointer;
 
     static AimDial()
     {
@@ -54,7 +55,10 @@ public sealed class AimDial : Control
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
-        _isDragging = true;
+        if (_dragPointer is not null)
+            return;
+
+        _dragPointer = e.Pointer;
         e.Pointer.Capture(this);
         e.Handled = true;
         Point(e.GetPosition(this));
@@ -63,21 +67,25 @@ public sealed class AimDial : Control
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
-        if (_isDragging)
+        if (e.Pointer == _dragPointer)
             Point(e.GetPosition(this));
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
-        _isDragging = false;
+        if (e.Pointer != _dragPointer)
+            return;
+
+        _dragPointer = null;
         e.Pointer.Capture(null);
     }
 
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {
         base.OnPointerCaptureLost(e);
-        _isDragging = false;
+        if (e.Pointer == _dragPointer)
+            _dragPointer = null;
     }
 
     private void Point(Point position)

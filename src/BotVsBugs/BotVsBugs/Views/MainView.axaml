@@ -20,9 +20,11 @@
         <Panel>
           <controls:GameView Name="Game" />
 
+          <!-- Across a vertical fold, the start of the HUD keeps to the left page and its end to the right
+               one (MainView.KeepHudOffFold); the chips wrap rather than cross the crease. -->
           <Grid Name="Hud" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Top" Margin="12">
-            <StackPanel Spacing="8">
-              <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Name="HudStart" Spacing="8">
+              <WrapPanel ItemSpacing="8" LineSpacing="8">
                 <Border Classes="chip">
                   <StackPanel Orientation="Horizontal" Spacing="10">
                     <TextBlock Name="LevelText" Classes="hud" />
@@ -32,7 +34,7 @@
                 <Border Name="HingeChip" Classes="chip" IsVisible="False">
                   <TextBlock Name="HingeText" Classes="hud" />
                 </Border>
-              </StackPanel>
+              </WrapPanel>
               <Border Name="HintBox"
                       Classes="chip"
                       HorizontalAlignment="Left"
@@ -43,7 +45,7 @@
               </Border>
             </StackPanel>
 
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+            <StackPanel Name="HudEnd" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
               <Border Classes="chip">
                 <TextBlock Name="ScoreText" Classes="hud" Foreground="{StaticResource SunBrush}" />
               </Border>
@@ -60,9 +62,9 @@
     </fold:TwoPaneView>
 
     <!-- The title, results and pause, over the game. Side by side on a wide screen or across a fold,
-         stacked on a tall one. -->
+         stacked otherwise, so the buttons always show: one pane would be the title alone. -->
     <Panel Name="MenuLayer" Background="{StaticResource ScrimBrush}" IsVisible="False">
-      <fold:TwoPaneView Name="MenuPanes">
+      <fold:TwoPaneView Name="MenuPanes" MinTallModeHeight="0">
         <fold:TwoPaneView.Pane1>
           <!-- Shrinks to fit when a pane is short, as when the panes stack on the cover display. -->
           <Viewbox StretchDirection="DownOnly" Margin="24">

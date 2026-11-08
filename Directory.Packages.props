@@ -24,5 +24,10 @@
     <PackageVersion Include="SkiaSharp.NativeAssets.iOS" Version="3.119.4" />
     <!-- 2D physics, a Box2D port in C# (MS-PL). -->
     <PackageVersion Include="Aether.Physics2D" Version="2.2.0" />
+    <!-- Tests, as the library runs its own. -->
+    <PackageVersion Include="Avalonia.Headless.XUnit" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
 </Project>

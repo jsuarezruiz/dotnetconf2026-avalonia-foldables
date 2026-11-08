@@ -48,6 +48,7 @@ public sealed class StrokeBuilder
     private float _radius;
     private int _inputs;
     private ulong _lastTime;
+    private float _untimed;
     private double _speed;
     private double _travel;
     private double _sprayDue;
@@ -82,6 +83,7 @@ public sealed class StrokeBuilder
     /// <param name="viewScale">Screen pixels per document pixel, to judge speed as the hand does.</param>
     public void Add(SKPoint point, float? pressure, ulong timestamp, float viewScale)
     {
+        var from = _smoothed;
         if (_inputs == 0)
         {
             _smoothed = point;
@@ -96,7 +98,7 @@ public sealed class StrokeBuilder
             _smoothed = Lerp(_smoothed, point, (distance - slack) / distance);
         }
 
-        var radius = TargetRadius(_smoothed, pressure, timestamp, viewScale);
+        var radius = TargetRadius(from, _smoothed, pressure, timestamp, viewScale);
         _radius = _inputs == 0 ? radius : _radius + ((radius - _radius) * 0.3f);
         AddInput(_smoothed, _radius);
     }
@@ -187,7 +189,8 @@ public sealed class StrokeBuilder
         _inputs++;
     }
 
-    private float TargetRadius(SKPoint point, float? pressure, ulong timestamp, float viewScale)
+    // The radius the brush wants at the new point, after the line moved from one point to the other.
+    private float TargetRadius(SKPoint from, SKPoint to, float? pressure, ulong timestamp, float viewScale)
     {
         var factor = 1f;
         if (_tool.FollowsPressure)
@@ -199,12 +202,17 @@ public sealed class StrokeBuilder
             else if (_inputs > 0 && timestamp > _lastTime)
             {
                 // Screen pixels per millisecond: a slow line keeps its full width, a quick one thins.
-                var speed = SKPoint.Distance(point, _smoothed) * viewScale / (timestamp - _lastTime);
+                // The distance includes points that arrived with the previous one's timestamp.
+                var speed = (_untimed + SKPoint.Distance(from, to)) * viewScale / (timestamp - _lastTime);
+                _untimed = 0;
                 _speed = (_speed * 0.7) + (speed * 0.3);
                 factor = (float)Math.Clamp(1.1 - (0.17 * _speed), 0.42, 1.05);
             }
             else
             {
+                // Several points in one input event share its timestamp: their distance counts at the next one.
+                if (_inputs > 0)
+                    _untimed += SKPoint.Distance(from, to);
                 factor = _inputs == 0 ? 1f : _radius / _baseRadius;
             }
         }
@@ -265,9 +273,7 @@ public sealed class StrokeBuilder
 
         _samples.Add(sample);
         var r = Math.Max(sample.R, 0.5f);
-        _bounds = _bounds.IsEmpty
-            ? new SKRect(sample.X - r, sample.Y - r, sample.X + r, sample.Y + r)
-            : SKRect.Union(_bounds, new SKRect(sample.X - r, sample.Y - r, sample.X + r, sample.Y + r));
+        Grow(new SKRect(sample.X - r, sample.Y - r, sample.X + r, sample.Y + r));
 
         if (_tool.Kind == ToolKind.Spray && step > 0)
             Spray(new SKPoint(sample.X, sample.Y), sample.R, step);
@@ -295,9 +301,13 @@ public sealed class StrokeBuilder
             var x = center.X + (float)(dx * radius);
             var y = center.Y + (float)(dy * radius);
             _dots[_random.Next(DotScales.Length)].Add(new SKPoint(x, y));
-            _bounds = SKRect.Union(_bounds, new SKRect(x - 3, y - 3, x + 3, y + 3));
+            Grow(new SKRect(x - 3, y - 3, x + 3, y + 3));
         }
     }
+
+    // Empty bounds are (0, 0, 0, 0), and a union with them would stretch the stroke to the page's corner.
+    private void Grow(SKRect area) =>
+        _bounds = _bounds.IsEmpty ? area : SKRect.Union(_bounds, area);
 
     // Thins the last stretch of a pen's line to a point, as lifting the pen does.
     private void TaperEnd()
