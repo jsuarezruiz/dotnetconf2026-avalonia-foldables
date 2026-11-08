@@ -42,7 +42,7 @@ public sealed class HingeTrigger
     public bool IsArmed { get; private set; }
 
     /// <summary>
-    /// Gets how far the band is pulled back, from 0 to 1.
+    /// Gets how far the band is pulled back, from 0 to 1. Once armed, it holds the deepest fold.
     /// </summary>
     public double Pull { get; private set; }
 
@@ -119,11 +119,13 @@ public sealed class HingeTrigger
             return;
         }
 
+        // Armed, the band stays at the deepest fold until it lets go, so what shows is what fires.
         _deepest = Math.Min(_deepest, angle);
+        Pull = Math.Clamp((RestAngle - _deepest) / FullTravel, 0d, 1d);
         if (angle - _deepest < ReleaseTravel)
             return;
 
-        var power = Math.Clamp((RestAngle - _deepest) / FullTravel, 0d, 1d);
+        var power = Pull;
         Stop();
         Fired?.Invoke(power);
     }

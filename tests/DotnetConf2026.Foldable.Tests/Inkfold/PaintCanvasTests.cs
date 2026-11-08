@@ -33,6 +33,51 @@ public sealed class PaintCanvasTests : IDisposable
         Assert.Equal(without, withPalm);
     }
 
+    [AvaloniaFact]
+    public void A_thumb_on_the_page_while_the_press_prints_leaves_the_print_alone()
+    {
+        var studio = new Studio(new Gallery(Path.Combine(_root, "press")));
+        var canvas = new PaintCanvas { Studio = studio };
+        var window = new Window { Width = 951, Height = 669, Content = canvas };
+        window.Show();
+        Pump();
+        var input = new Pointers(window, canvas);
+        var finger = new Pointer(1, PointerType.Touch, true);
+        input.Down(finger, new Point(300, 300));
+        input.Move(finger, new Point(400, 320));
+        input.Up(finger, new Point(400, 320));
+
+        var pressed = false;
+        string? notice = null;
+        studio.Pressed += (_, _) => pressed = true;
+        studio.Notice += (_, text) => notice = text;
+
+        // The device opens and the press starts. A thumb taps the page, and a two-finger tap asks to undo.
+        var press = studio.PressAsync(PressFold.Vertical);
+        input.Down(finger, new Point(600, 400));
+        input.Up(finger, new Point(600, 400));
+        studio.Undo();
+        while (!press.IsCompleted)
+        {
+            Dispatcher.UIThread.RunJobs();
+            System.Threading.Thread.Sleep(10);
+        }
+
+        Pump();
+        Assert.Null(notice);
+        Assert.True(pressed);
+        window.Close();
+    }
+
+    private static void Pump()
+    {
+        for (var i = 0; i < 3; i++)
+        {
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
     // A pen line from left to right, optionally with a palm landing halfway and moving a little.
     // Returns the painted area, in page pixels.
     private PixelRect DrawLine(bool palm)

@@ -95,6 +95,12 @@ public sealed class Studio
     /// </summary>
     public bool IsPressArmed { get; private set; }
 
+    /// <summary>
+    /// Gets whether the press is printing. The page takes no paint meanwhile: a thumb landing on the screen
+    /// as the device opens would change the page under the print, and the print would be left out.
+    /// </summary>
+    public bool IsPressing => _isPressing;
+
     public Document Document { get; private set; }
 
     public History History { get; }
@@ -356,13 +362,13 @@ public sealed class Studio
 
     public void Undo()
     {
-        if (History.Undo())
+        if (!_isPressing && History.Undo())
             Restored();
     }
 
     public void Redo()
     {
-        if (History.Redo())
+        if (!_isPressing && History.Redo())
             Restored();
     }
 

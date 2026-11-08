@@ -27,6 +27,9 @@ public class HingeTriggerTests
         Assert.True(_trigger.IsArmed);
         _trigger.Update(HalfOpen(100));
         _trigger.Update(HalfOpen(115));
+
+        // Opening on the way to firing doesn't ease the band: the gauge shows the shot it will fire.
+        Assert.Equal((172 - 100) / 90d, _trigger.Pull, 3);
         _trigger.Update(Flat());
 
         var power = Assert.Single(_shots);

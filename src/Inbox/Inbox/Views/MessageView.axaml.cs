@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Linq;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
@@ -9,6 +10,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Inbox.Models;
 
 namespace Inbox.Views;
 
@@ -27,6 +29,7 @@ public partial class MessageView : UserControl
     ];
 
     private InboxViewModel? _vm;
+    private Message? _shown;
     private IPointer? _swipe;
     private double _swipeFrom;
 
@@ -73,15 +76,20 @@ public partial class MessageView : UserControl
         if (_vm is not null)
             _vm.PropertyChanged -= OnViewModelChanged;
         _vm = DataContext as InboxViewModel;
+        _shown = _vm?.SelectedMessage;
         if (_vm is not null)
             _vm.PropertyChanged += OnViewModelChanged;
     }
 
-    // Another message starts at its top.
+    // Another message starts at its top. The search raises the change too, to select the open message in
+    // the list again, but that message stays where it was.
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(InboxViewModel.SelectedMessage))
+        if (e.PropertyName == nameof(InboxViewModel.SelectedMessage) && _vm?.SelectedMessage != _shown)
+        {
+            _shown = _vm?.SelectedMessage;
             Reader.Offset = default;
+        }
     }
 
     // Remember what the person was reading, not where: the fold changes the message's width, every line
@@ -130,6 +138,10 @@ public partial class MessageView : UserControl
         AddHandler(PointerPressedEvent, (_, e) =>
         {
             if (!ShowsBack || _swipe is not null || this.GetVisualParent() is not { } parent || e.GetPosition(this).X > EdgeWidth)
+                return;
+
+            // The back button and the reply reach the edge too: a press on them is theirs.
+            if (e.Source is Visual pressed && pressed.GetSelfAndVisualAncestors().Any(v => v is Button or TextBox))
                 return;
 
             _swipe = e.Pointer;

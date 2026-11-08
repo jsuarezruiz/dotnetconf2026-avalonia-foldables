@@ -32,7 +32,12 @@ public partial class MainView : UserControl
             _vm.Open(message, onePane);
             ShowPanes();
             if (onePane)
+            {
+                // The list just hid: start the keyboard on the new page, so Escape and Tab still work.
                 MessagePane.SlideIn();
+                Panes.UpdateLayout();
+                MessagePane.BackButton.Focus();
+            }
         };
         MessagePane.BackRequested += (_, _) => GoBack();
 
@@ -124,7 +129,13 @@ public partial class MainView : UserControl
     // (with ClearSelectionOnLostFocus off) its selection, because a hidden pane isn't destroyed.
     private void KeepFocus()
     {
-        AddHandler(GotFocusEvent, (_, e) => _focused = e.Source as Control);
+        AddHandler(GotFocusEvent, (_, e) =>
+        {
+            // The person moved the focus on their own since a pane hid: that's where it stays.
+            if (_restore is not null && _restore != _focused)
+                _restore = null;
+            _focused = e.Source as Control;
+        });
         Panes.ModeChanged += (_, _) =>
         {
             if (_restore is { IsEffectivelyVisible: true } back)

@@ -156,8 +156,9 @@ public class InboxTests
             Assert.Equal(TwoPaneViewPriority.Pane2, device.Panes.PanePriority);
         }
 
+        // Opening the message starts the keyboard on its page, so Escape goes back with nothing clicked.
         OpenOnCover();
-        device.ReplyBox.Focus();
+        Assert.Same(device.BackButton, device.Focused);
         device.Window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
         device.Settle();
         Assert.Equal(TwoPaneViewPriority.Pane1, device.Panes.PanePriority);
@@ -173,6 +174,71 @@ public class InboxTests
         OpenOnCover();
         device.Swipe(from: 120, to: 420);
         Assert.Equal(TwoPaneViewPriority.Pane2, device.Panes.PanePriority);
+    }
+
+    [AvaloniaFact]
+    public void A_tap_on_the_back_arrow_goes_back_though_it_sits_in_the_swipe_edge()
+    {
+        var device = new Device();
+        var message = device.ViewModel.Messages[1];
+        device.Fold(Closed);
+        device.List.ContainerFromItem(message)!.Focus();
+        device.Window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        device.Wait(0.5);
+
+        var arrow = device.BackButton.TranslatePoint(new Point(10, device.BackButton.Bounds.Height / 2), device.Window)!.Value;
+        Assert.True(arrow.X <= 28, "the arrow is inside the strip a swipe back starts from");
+        device.Window.MouseDown(arrow, MouseButton.Left);
+        device.Window.MouseUp(arrow, MouseButton.Left);
+        device.Settle();
+
+        Assert.Equal(TwoPaneViewPriority.Pane1, device.Panes.PanePriority);
+    }
+
+    [AvaloniaFact]
+    public void Searching_leaves_the_open_message_where_it_was_being_read()
+    {
+        var device = new Device();
+        var message = device.ViewModel.Messages[0];
+        device.ViewModel.SelectedMessage = message;
+        device.Settle();
+        var reader = device.Reader;
+        var body = device.Body;
+        var words = message.Body.IndexOf("Third,", System.StringComparison.Ordinal);
+        var line = body.TextLayout.HitTestTextPosition(words);
+        reader.Offset = reader.Offset.WithY(reader.Offset.Y + body.TranslatePoint(line.TopLeft, reader)!.Value.Y);
+        device.Settle();
+        var offset = reader.Offset.Y;
+
+        // Typing a search, and clearing it, re-selects the open message in the list; it doesn't reopen it.
+        device.SearchBox.Text = "f";
+        device.Settle();
+        device.SearchBox.Text = string.Empty;
+        device.Settle();
+
+        Assert.Equal(offset, reader.Offset.Y);
+        Assert.Equal(words, device.ViewModel.ReadingPosition);
+    }
+
+    [AvaloniaFact]
+    public void Focus_the_person_moves_while_closed_stays_where_they_put_it()
+    {
+        var device = new Device();
+        device.ViewModel.SelectedMessage = device.ViewModel.Messages[2];
+        device.Settle();
+        device.ReplyBox.Focus();
+        device.Settle();
+
+        // Closed, the focus lands on the message in the list; then the person goes to the search.
+        device.Fold(Closed);
+        var search = device.SearchBox;
+        search.Focus();
+        search.Text = "see";
+        device.Settle();
+
+        // Opening the device doesn't pull them back into the reply.
+        device.Fold(Open);
+        Assert.Same(search, device.Focused);
     }
 
     [AvaloniaFact]

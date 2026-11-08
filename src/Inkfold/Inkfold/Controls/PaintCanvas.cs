@@ -322,6 +322,13 @@ public sealed class PaintCanvas : Control
         if (_toolPointer is not null)
             return;
 
+        // The press is printing: the page can still move, but it takes no paint.
+        if (studio.IsPressing)
+        {
+            e.Handled = true;
+            return;
+        }
+
         _toolPointer = e.Pointer;
         _toolStart = e.Timestamp;
         _toolDown = point.Position;
