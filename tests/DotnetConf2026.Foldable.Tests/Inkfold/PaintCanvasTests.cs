@@ -52,10 +52,12 @@ public sealed class PaintCanvasTests : IDisposable
         studio.Pressed += (_, _) => pressed = true;
         studio.Notice += (_, text) => notice = text;
 
-        // The device opens and the press starts. A thumb taps the page, and a two-finger tap asks to undo.
+        // The device opens and the press starts. While it prints, a thumb taps the page and undo is asked for.
         var press = studio.PressAsync(PressFold.Vertical);
+        Assert.True(studio.IsPressing);
         input.Down(finger, new Point(600, 400));
         input.Up(finger, new Point(600, 400));
+        Assert.True(studio.IsPressing);
         studio.Undo();
         while (!press.IsCompleted)
         {
@@ -114,20 +116,27 @@ public sealed class PaintCanvasTests : IDisposable
         var window = new Window { Width = 300, Height = 600, Content = rail };
         window.Show();
         studio.AddLayer();
+        studio.AddLayer();
+        studio.Undo();
         Pump();
         var undo = rail.FindControl<Button>("UndoButton")!;
+        var redo = rail.FindControl<Button>("RedoButton")!;
         Assert.True(undo.IsEnabled);
+        Assert.True(redo.IsEnabled);
 
         var press = studio.PressAsync(PressFold.Vertical);
         Assert.False(undo.IsEnabled);
+        Assert.False(redo.IsEnabled);
         while (!press.IsCompleted)
         {
             Dispatcher.UIThread.RunJobs();
             System.Threading.Thread.Sleep(10);
         }
 
+        // The print is a step of its own: undo takes it back, and there's nothing left to redo.
         Pump();
         Assert.True(undo.IsEnabled);
+        Assert.False(redo.IsEnabled);
         window.Close();
     }
 

@@ -3,6 +3,7 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using BotVsBugs.Game;
 
 namespace BotVsBugs.Controls;
 
@@ -82,8 +83,8 @@ public sealed class HingeGauge : Control
         var top = pivot + new Point(Math.Cos(radians) * length, -Math.Sin(radians) * length);
         if (Pull > 0d)
         {
-            var rest = 172d * Math.PI / 180d;
-            var drawn = (172d - (Math.Min(Pull, 1d) * 90d)) * Math.PI / 180d;
+            var rest = HingeTrigger.RestAngle * Math.PI / 180d;
+            var drawn = (HingeTrigger.RestAngle - (Math.Min(Pull, 1d) * HingeTrigger.FullTravel)) * Math.PI / 180d;
             var radius = length * 0.7d;
             var geometry = new StreamGeometry();
             using (var g = geometry.Open())

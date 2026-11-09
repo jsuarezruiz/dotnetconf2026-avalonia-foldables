@@ -31,21 +31,21 @@
         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
           <TextBlock Classes="caption" Text="SIZE" VerticalAlignment="Center" />
           <TextBlock Name="SizeText" Grid.Column="1" Classes="value" />
-          <Slider Name="SizeSlider" Grid.Row="1" Grid.ColumnSpan="2" Minimum="0" Maximum="1" />
+          <Slider Name="SizeSlider" Grid.Row="1" Grid.ColumnSpan="2" Minimum="0" Maximum="1" AutomationProperties.Name="Size" />
         </Grid>
         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
           <TextBlock Classes="caption" Text="OPACITY" VerticalAlignment="Center" />
           <TextBlock Name="OpacityText" Grid.Column="1" Classes="value" />
-          <Slider Name="OpacitySlider" Grid.Row="1" Grid.ColumnSpan="2" Minimum="0.05" Maximum="1" />
+          <Slider Name="OpacitySlider" Grid.Row="1" Grid.ColumnSpan="2" Minimum="0.05" Maximum="1" AutomationProperties.Name="Opacity" />
         </Grid>
       </StackPanel>
 
       <!-- Color -->
       <StackPanel Name="ColorSection">
         <TextBlock Name="ColorCaption" Classes="caption" Text="COLOR" />
-        <primitives:ColorSpectrum Name="Spectrum" CornerRadius="12"
+        <primitives:ColorSpectrum Name="Spectrum" CornerRadius="12" AutomationProperties.Name="Saturation and brightness"
                                   Components="SaturationValue" Shape="Box" />
-        <primitives:ColorSlider Name="HueSlider" ColorComponent="Component1" ColorModel="Hsva"
+        <primitives:ColorSlider Name="HueSlider" ColorComponent="Component1" ColorModel="Hsva" AutomationProperties.Name="Hue"
                                 Orientation="Horizontal" IsAlphaVisible="False" IsPerceptive="True"
                                 HsvColor="{Binding #Spectrum.HsvColor, Mode=TwoWay}" />
         <UniformGrid Name="Swatches" Columns="8" HorizontalAlignment="Left" />
@@ -82,7 +82,7 @@
             <TextBlock Classes="caption" Text="LAYER OPACITY" VerticalAlignment="Center" />
             <TextBlock Name="LayerOpacityText" Grid.Column="1" Classes="value" />
           </Grid>
-          <Slider Name="LayerOpacitySlider" Minimum="0" Maximum="1" />
+          <Slider Name="LayerOpacitySlider" Minimum="0" Maximum="1" AutomationProperties.Name="Layer opacity" />
           <Button Name="ClearLayerButton" Classes="pill quiet" HorizontalAlignment="Stretch"
                   HorizontalContentAlignment="Center" Content="Clear layer" />
         </StackPanel>

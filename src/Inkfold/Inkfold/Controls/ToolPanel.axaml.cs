@@ -27,23 +27,25 @@ public partial class ToolPanel : UserControl
         AvaloniaProperty.Register<ToolPanel, bool>(nameof(IsDocked));
 
     // Inks and paints, from dark to light, and the paper's own color for painting it back.
-    private static readonly SKColor[] Palette =
+    // Named, so a screen reader can say which color a swatch is.
+    private static readonly (SKColor Color, string Name)[] Palette =
     [
-        new(0x1D, 0x1B, 0x2A), new(0x4A, 0x47, 0x57), new(0x8E, 0x8A, 0x99), new(0xF6, 0xF1, 0xE6),
-        new(0xC6, 0x28, 0x28), new(0xF2, 0x6B, 0x3A), new(0xF5, 0xB7, 0x2E), new(0xFF, 0xE3, 0x6E),
-        new(0x2E, 0x9E, 0x5B), new(0x14, 0x7D, 0x7E), new(0x1F, 0x6F, 0xD1), new(0x1E, 0x2D, 0x7A),
-        new(0x6B, 0x3F, 0xC7), new(0xE0, 0x4F, 0x9B), new(0x8B, 0x5A, 0x2B), new(0xD9, 0xB0, 0x8C),
+        (new(0x1D, 0x1B, 0x2A), "Ink"), (new(0x4A, 0x47, 0x57), "Slate"), (new(0x8E, 0x8A, 0x99), "Gray"), (new(0xF6, 0xF1, 0xE6), "Paper"),
+        (new(0xC6, 0x28, 0x28), "Red"), (new(0xF2, 0x6B, 0x3A), "Orange"), (new(0xF5, 0xB7, 0x2E), "Amber"), (new(0xFF, 0xE3, 0x6E), "Yellow"),
+        (new(0x2E, 0x9E, 0x5B), "Green"), (new(0x14, 0x7D, 0x7E), "Teal"), (new(0x1F, 0x6F, 0xD1), "Blue"), (new(0x1E, 0x2D, 0x7A), "Navy"),
+        (new(0x6B, 0x3F, 0xC7), "Purple"), (new(0xE0, 0x4F, 0x9B), "Pink"), (new(0x8B, 0x5A, 0x2B), "Brown"), (new(0xD9, 0xB0, 0x8C), "Tan"),
     ];
 
-    private static readonly (ToolKind Kind, string Icon, string Name)[] ToolTiles =
+    // The label fits the tile; the name is what the tooltip and a screen reader say, as on the rail.
+    private static readonly (ToolKind Kind, string Icon, string Label, string Name)[] ToolTiles =
     [
-        (ToolKind.Pen, Icons.PenLine, "Pen"),
-        (ToolKind.Marker, Icons.Highlighter, "Marker"),
-        (ToolKind.Wash, Icons.Droplets, "Water"),
-        (ToolKind.Spray, Icons.SprayCan, "Spray"),
-        (ToolKind.Eraser, Icons.Eraser, "Eraser"),
-        (ToolKind.Fill, Icons.PaintBucket, "Fill"),
-        (ToolKind.Picker, Icons.Pipette, "Picker"),
+        (ToolKind.Pen, Icons.PenLine, "Pen", "Pen"),
+        (ToolKind.Marker, Icons.Highlighter, "Marker", "Marker"),
+        (ToolKind.Wash, Icons.Droplets, "Water", "Watercolor"),
+        (ToolKind.Spray, Icons.SprayCan, "Spray", "Spray"),
+        (ToolKind.Eraser, Icons.Eraser, "Eraser", "Eraser"),
+        (ToolKind.Fill, Icons.PaintBucket, "Fill", "Fill"),
+        (ToolKind.Picker, Icons.Pipette, "Picker", "Picker"),
     ];
 
     private readonly Dictionary<ToolKind, Button> _toolButtons = [];
@@ -58,9 +60,9 @@ public partial class ToolPanel : UserControl
     {
         InitializeComponent();
 
-        foreach (var (kind, icon, name) in ToolTiles)
+        foreach (var (kind, icon, text, name) in ToolTiles)
         {
-            var label = new TextBlock { Text = name };
+            var label = new TextBlock { Text = text };
             _toolNames.Add(label);
             var button = new Button
             {
@@ -83,7 +85,7 @@ public partial class ToolPanel : UserControl
             ToolGrid.Children.Add(button);
         }
 
-        foreach (var color in Palette)
+        foreach (var (color, _) in Palette)
         {
             var button = Swatch(color);
             _swatches.Add((color, button));
@@ -251,6 +253,9 @@ public partial class ToolPanel : UserControl
             Background = new SolidColorBrush(Color.FromRgb(color.Red, color.Green, color.Blue)),
             Margin = new Thickness(0, 0, 6, 6),
         };
+        var name = Array.Find(Palette, entry => entry.Color == color).Name
+            ?? $"Color #{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
+        AutomationProperties.SetName(button, name);
         button.Click += (_, _) => _studio?.SetColor(color);
         return button;
     }
@@ -313,18 +318,18 @@ public partial class ToolPanel : UserControl
     // dragging a layer's opacity or toggling it doesn't rebuild the list.
     private void RebuildLayers()
     {
+        var rows = LayerList.Children.OfType<LayerRow>().ToList();
         if (_studio is not { } studio)
         {
-            LayerList.Children.Clear();
+            ClearLayerRows(rows);
             return;
         }
 
         var document = studio.Document;
         var stack = Enumerable.Reverse(document.Layers).ToList();
-        var rows = LayerList.Children.OfType<LayerRow>().ToList();
         if (!rows.Select(row => row.Layer).SequenceEqual(stack))
         {
-            LayerList.Children.Clear();
+            ClearLayerRows(rows);
             foreach (var layer in stack)
             {
                 var row = new LayerRow(layer, document);
@@ -346,6 +351,13 @@ public partial class ToolPanel : UserControl
         _updating = false;
         LayerUpButton.IsEnabled = document.ActiveIndex < document.Layers.Count - 1;
         LayerDownButton.IsEnabled = document.ActiveIndex > 0;
+    }
+
+    private void ClearLayerRows(List<LayerRow> rows)
+    {
+        LayerList.Children.Clear();
+        foreach (var row in rows)
+            row.DisposeThumbnail();
     }
 
     private void RefreshThumbnails()
@@ -381,6 +393,7 @@ public partial class ToolPanel : UserControl
         {
             Layer = layer;
             Classes.Add("layer");
+            Focusable = true;
             _thumbnail = new Image { Width = 56, Height = 41, Stretch = Stretch.UniformToFill };
             _name = new TextBlock { FontSize = 14, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
             _opacity = new TextBlock { Classes = { "value" }, HorizontalAlignment = HorizontalAlignment.Left };
@@ -427,10 +440,21 @@ public partial class ToolPanel : UserControl
             _eye.Opacity = Layer.IsVisible ? 1 : 0.55;
             AutomationProperties.SetName(_eye, Layer.IsVisible ? $"Hide {Layer.Name}" : $"Show {Layer.Name}");
             ToolTip.SetTip(_eye, Layer.IsVisible ? "Hide layer" : "Show layer");
+            AutomationProperties.SetName(this, $"{Layer.Name}, {_opacity.Text}{(active ? ", selected" : "")}");
         }
 
-        public void RefreshThumbnail(Document document) =>
+        public void RefreshThumbnail(Document document)
+        {
+            var old = _thumbnail.Source as IDisposable;
             _thumbnail.Source = Bitmaps.LayerThumbnail(document, Layer, 112);
+            old?.Dispose();
+        }
+
+        public void DisposeThumbnail()
+        {
+            (_thumbnail.Source as IDisposable)?.Dispose();
+            _thumbnail.Source = null;
+        }
 
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
@@ -438,6 +462,16 @@ public partial class ToolPanel : UserControl
             if (e.Source is Visual source && source.FindAncestorOfType<Button>(true) is not null)
                 return;
             Selected?.Invoke(this, EventArgs.Empty);
+        }
+
+        // Enter or Space selects the layer, as a tap does.
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+            if (e.Handled || e.Source != this || e.Key is not (Key.Enter or Key.Space))
+                return;
+            Selected?.Invoke(this, EventArgs.Empty);
+            e.Handled = true;
         }
     }
 }

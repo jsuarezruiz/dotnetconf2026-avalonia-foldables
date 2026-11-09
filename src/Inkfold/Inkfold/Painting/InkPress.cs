@@ -20,7 +20,8 @@ public static class InkPress
     /// <summary>
     /// Presses a layer's paint onto the facing half. The print lands under the paint already there,
     /// smudged where the paper slid, spread a little where it was squeezed, and broken where the ink
-    /// didn't take. Call under <see cref="Document.Sync"/>.
+    /// didn't take. It changes the bitmap it's given, so pass one nothing else is using, such as a copy:
+    /// the studio presses copies on another thread.
     /// </summary>
     public static void Apply(SKBitmap pixels, int seed, PressFold fold)
     {

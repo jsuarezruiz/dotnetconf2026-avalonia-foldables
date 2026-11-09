@@ -6,6 +6,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Inkfold.Controls;
 using Inkfold.Painting;
 
@@ -18,6 +19,9 @@ public partial class GalleryView : UserControl
 {
     // Two cards fit across one page of the open book.
     private const double CardWidth = 156;
+
+    // The cards' thumbnails, let go when the cards are.
+    private readonly List<Bitmap> _thumbnails = [];
 
     private Studio? _studio;
 
@@ -59,6 +63,9 @@ public partial class GalleryView : UserControl
 
         await studio.SaveNow();
         Items.Children.Clear();
+        foreach (var thumbnail in _thumbnails)
+            thumbnail.Dispose();
+        _thumbnails.Clear();
 
         // An async void method: an exception here would end the app, so a gallery that can't be read says so.
         IReadOnlyList<GalleryItem> items;
@@ -80,6 +87,10 @@ public partial class GalleryView : UserControl
     private Control CreateCard(Studio studio, GalleryItem item)
     {
         var isOpen = item.Id == studio.Document.Id;
+        var thumbnail = Bitmaps.Load(item.ThumbnailPath);
+        if (thumbnail is not null)
+            _thumbnails.Add(thumbnail);
+
         var open = new Button
         {
             Padding = new Thickness(0),
@@ -98,7 +109,7 @@ public partial class GalleryView : UserControl
                         BorderThickness = new Thickness(isOpen ? 2 : 1),
                         BorderBrush = isOpen ? Brush("AccentBrush") : Brush("ChromeLineBrush"),
                         Height = CardWidth * Document.DefaultHeight / Document.DefaultWidth,
-                        Child = new Image { Source = Bitmaps.Load(item.ThumbnailPath), Stretch = Stretch.UniformToFill },
+                        Child = new Image { Source = thumbnail, Stretch = Stretch.UniformToFill },
                     },
                     new TextBlock { Text = item.Name, FontSize = 14, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(4, 0) },
                     new TextBlock
@@ -130,7 +141,7 @@ public partial class GalleryView : UserControl
         AutomationProperties.SetName(delete, $"Delete {item.Name}");
         AutomationProperties.SetName(open, isOpen ? $"{item.Name}, open now" : item.Name);
         var confirming = false;
-        delete.Click += (_, _) =>
+        delete.Click += async (_, _) =>
         {
             if (!confirming)
             {
@@ -143,7 +154,7 @@ public partial class GalleryView : UserControl
                 return;
             }
 
-            studio.DeleteDrawing(item.Id);
+            await studio.DeleteDrawingAsync(item.Id);
             Refresh();
         };
 

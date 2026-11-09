@@ -18,7 +18,7 @@ public sealed record BugSpec(BugKind Kind, float X, float Y);
 public sealed record LevelSpec(string Name, string Hint, string Background, int Bots, BlockSpec[] Blocks, BugSpec[] Bugs)
 {
     /// <summary>
-    /// Gets the tile under the grass line: sand in the desert, dirt elsewhere.
+    /// Gets the ground's surface tile: sand in the desert, grass elsewhere.
     /// </summary>
     public string GroundTile => Background == "desert" ? "Ui/sand.png" : "Ui/grass.png";
 }

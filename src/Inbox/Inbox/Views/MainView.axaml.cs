@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -43,9 +44,6 @@ public partial class MainView : UserControl
         };
         MessagePane.BackRequested += (_, _) => GoBack();
 
-        // The list needs no help to keep its place: a virtualizing ListBox keeps its first visible row
-        // through a resize. The open message's reading position does: see MessageView.
-        KeepFocus();
         Panes.ModeChanged += (_, _) =>
         {
             // Both panes on screen: there's no "reading" pane to go back from.
@@ -54,11 +52,16 @@ public partial class MainView : UserControl
             ShowPanes();
         };
 
+        // After the panes are set for the new mode, so the focus sees what's really hidden, the back
+        // button included. The list needs no help to keep its place: a virtualizing ListBox keeps its first
+        // visible row through a resize. The open message's reading position does: see MessageView.
+        KeepFocus();
+
         ShowPanes();
     }
 
     /// <summary>
-    /// Gets the state the views show, which outlives them.
+    /// Gets the state the views show.
     /// </summary>
     public InboxViewModel ViewModel => _vm;
 
@@ -137,27 +140,29 @@ public partial class MainView : UserControl
         Panes.ModeChanged += (_, _) =>
         {
             if (_restore is { IsEffectivelyVisible: true } back)
-            {
                 back.Focus();                    // its pane is back
-            }
             else if (_focused is { IsEffectivelyVisible: false } hidden)
             {
-                CounterpartOf(hidden).Focus();   // land next door
+                CounterpartOf(hidden)?.Focus();  // land next door
                 _restore = hidden;               // its pane just hid
             }
-
+            else
+                return;                          // nothing moved
             _focused?.BringIntoView();
         };
     }
 
-    // The reply's counterpart is its message in the list; the list's is the reply.
-    private Control CounterpartOf(Control control) =>
+    // The reply's counterpart is its message in the list; the list's is the reply. Not the search box,
+    // which would bring up the keyboard: with the message hidden by a search, the first row in view.
+    private Control? CounterpartOf(Control control) =>
         MessagePane.IsVisualAncestorOf(control)
-            ? OpenMessageRow() ?? InboxPane.List
+            ? OpenMessageRow() ?? FirstRowInView()
             : MessagePane.ReplyBox;
 
     private Control? OpenMessageRow() =>
         _vm.SelectedMessage is { } message ? InboxPane.List.ContainerFromItem(message) : null;
 
-    private void FocusOpenMessage() => (OpenMessageRow() ?? InboxPane.List).Focus();
+    private Control? FirstRowInView() => InboxPane.List.GetRealizedContainers().FirstOrDefault();
+
+    private void FocusOpenMessage() => (OpenMessageRow() ?? FirstRowInView())?.Focus();
 }

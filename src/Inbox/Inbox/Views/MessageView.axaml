@@ -43,6 +43,7 @@
           <Button Name="SendButton"
                   Grid.Column="1"
                   Classes="icon send"
+                  IsEnabled="{Binding CanSend}"
                   VerticalAlignment="Bottom"
                   AutomationProperties.Name="Send">
             <PathIcon Data="{StaticResource SendIcon}" Foreground="White" />
@@ -52,7 +53,8 @@
 
       <!-- The open message is the reader's data context: with none open, its bindings have nothing to
            read, rather than a null to report on. -->
-      <ScrollViewer Name="Reader" DataContext="{Binding SelectedMessage}" Focusable="True">
+      <ScrollViewer Name="Reader" DataContext="{Binding SelectedMessage}" Focusable="True"
+                    AutomationProperties.Name="{Binding Subject}">
         <StackPanel x:DataType="models:Message" Margin="28,20,28,24" Spacing="20" MaxWidth="720" HorizontalAlignment="Left">
           <TextBlock Classes="headline" Text="{Binding Subject}" />
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">

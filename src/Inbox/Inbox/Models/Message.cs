@@ -44,6 +44,9 @@ public sealed record Message(int Id, string From, string Subject, string Body, D
         }
     }
 
+    // What a screen reader says for the message's row in the list.
+    public override string ToString() => $"{From}, {Subject}, {Time}";
+
     // The time on its own: in a custom format, "t" is only the first letter of AM or PM.
     public string Date =>
         $"{Received.ToString("dddd, MMM d", CultureInfo.CurrentCulture)} · {Received.ToString("t", CultureInfo.CurrentCulture)}";

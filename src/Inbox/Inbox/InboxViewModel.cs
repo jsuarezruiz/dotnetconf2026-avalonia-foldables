@@ -9,7 +9,8 @@ namespace Inbox;
 
 /// <summary>
 /// What the person would be upset to lose when the device folds: the message they opened, the reply
-/// they were writing, and where they were in the list. The views come and go with the layout; this stays.
+/// they were writing, their search and where they were reading. The panes only hide with the layout, but
+/// this would survive them being rebuilt.
 /// </summary>
 public sealed class InboxViewModel : INotifyPropertyChanged
 {
@@ -76,6 +77,7 @@ public sealed class InboxViewModel : INotifyPropertyChanged
             Raise();
             Raise(nameof(HasSelection));
             Raise(nameof(ReplyDraft));
+            Raise(nameof(CanSend));
             Raise(nameof(ReplyHint));
         }
     }
@@ -95,8 +97,14 @@ public sealed class InboxViewModel : INotifyPropertyChanged
 
             _drafts[message.Id] = value;
             Raise();
+            Raise(nameof(CanSend));
         }
     }
+
+    /// <summary>
+    /// Gets whether there's a reply to send.
+    /// </summary>
+    public bool CanSend => !string.IsNullOrWhiteSpace(ReplyDraft);
 
     public string ReplyHint => _selectedMessage is { } message ? $"Reply to {message.FirstName}…" : string.Empty;
 
@@ -137,7 +145,10 @@ public sealed class InboxViewModel : INotifyPropertyChanged
     public void Send()
     {
         if (_selectedMessage is { } message && _drafts.Remove(message.Id))
+        {
             Raise(nameof(ReplyDraft));
+            Raise(nameof(CanSend));
+        }
     }
 
     private void Raise([CallerMemberName] string? name = null) =>

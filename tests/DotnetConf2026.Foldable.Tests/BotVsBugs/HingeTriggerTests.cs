@@ -79,11 +79,19 @@ public class HingeTriggerTests
     [Fact]
     public void A_wobble_of_the_hinge_does_not_arm()
     {
+        // Lying flat, a wobble pulls too little to count.
         _trigger.Update(Flat());
         _trigger.Ready();
         _trigger.Update(HalfOpen(175));
         _trigger.Update(Flat());
+        Assert.False(_trigger.IsArmed);
 
+        // Standing in book, the pull is already deep, so only the travel since the bot got ready counts.
+        _trigger.Stop();
+        _trigger.Update(HalfOpen(100));
+        _trigger.Ready();
+        _trigger.Update(HalfOpen(95));
+        _trigger.Update(HalfOpen(100));
         Assert.False(_trigger.IsArmed);
         Assert.Empty(_shots);
     }

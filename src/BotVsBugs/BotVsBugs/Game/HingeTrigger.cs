@@ -12,11 +12,15 @@ namespace BotVsBugs.Game;
 /// </remarks>
 public sealed class HingeTrigger
 {
-    // Flat, less some slack so a device lying open doesn't pull.
-    private const double RestAngle = 172d;
+    /// <summary>
+    /// The angle where the band rests: flat, less some slack so a device lying open doesn't pull.
+    /// </summary>
+    public const double RestAngle = 172d;
 
-    // Degrees of folding for a full pull: from 172° down to 82°.
-    private const double FullTravel = 90d;
+    /// <summary>
+    /// The degrees of folding for a full pull: from 172° down to 82°.
+    /// </summary>
+    public const double FullTravel = 90d;
 
     // How far the hinge must close, after a bot is ready, to arm the shot.
     private const double ArmTravel = 8d;

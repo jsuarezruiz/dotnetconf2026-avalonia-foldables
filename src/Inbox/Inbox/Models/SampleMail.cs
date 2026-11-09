@@ -13,10 +13,12 @@ public static class SampleMail
 
     private static List<Message> Create()
     {
-        var today = DateTime.Today;
+        // Ages from now, to the minute, so the newest mail is at the top whatever time the demo starts.
+        var now = DateTime.Now;
+        now = now.AddTicks(-(now.Ticks % TimeSpan.TicksPerMinute));
         var id = 0;
         Message Mail(string from, string subject, double daysAgo, string body) =>
-            new(++id, from, subject, body.Trim(), today.AddDays(-Math.Floor(daysAgo)).AddHours(9 + (daysAgo * 37 % 9)).AddMinutes(daysAgo * 113 % 60));
+            new(++id, from, subject, body.Trim(), now.AddMinutes(-Math.Round(daysAgo * 24 * 60)));
 
         return
         [
@@ -31,7 +33,7 @@ public static class SampleMail
 
                 Fourth, open it again. The reply comes back with its text, its cursor and the word you selected, and the focus goes straight back into it. Say it out loud: a fold is a resize, not a relaunch.
 
-                Fifth, scroll this message down to here and stand the phone up in tabletop. The message moves to the upright half, above the fold, and gets twice as wide, so every line rewraps and the text gets much shorter. A pixel offset would now point at some other paragraph, or past the end. The app remembers the words at the top of the view instead, and brings them back.
+                Fifth, scroll this message down to here and stand the phone up in tabletop. The message moves to the upright half, above the fold, and gets about half as wide again, so every line rewraps and the text gets shorter. A pixel offset would now point at some other paragraph, or past the end. The app remembers the words at the top of the view instead, and brings them back.
 
                 Sixth, and last, open a message on the cover display. It takes the whole screen, with a back button, because there's only room for one pane. Open the phone and the back button goes away, because both panes are on screen again.
 

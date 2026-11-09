@@ -18,7 +18,7 @@ public class InboxTests
 {
     private static readonly FoldState Open = new(true, DevicePosture.Flat, 180, new Rect(455.5, 0, 40, 669), false);
     private static readonly FoldState Closed = new(true, DevicePosture.Closed, 0, null, false);
-    private static readonly FoldState Tabletop = new(true, DevicePosture.HalfOpened, 90, new Rect(0, 314.5, 951, 40), true);
+    private static readonly FoldState Tabletop = new(true, DevicePosture.HalfOpened, 90, new Rect(0, 455.5, 669, 40), true);
 
     [AvaloniaFact]
     public void The_open_message_and_the_reply_survive_closing_and_opening()
@@ -59,7 +59,8 @@ public class InboxTests
         Assert.Equal(words, device.ViewModel.ReadingPosition);
         var offset = reader.Offset.Y;
 
-        // Tabletop: the message goes above the fold at twice the width, and every line rewraps.
+        // Tabletop: the message goes above the fold at about one and a half times the width, and every line
+        // rewraps.
         device.Fold(Tabletop);
 
         Assert.Equal(TwoPaneViewMode.Tall, device.Panes.Mode);
@@ -69,6 +70,35 @@ public class InboxTests
         Assert.Equal(
             body.TextLayout.GetLineIndexFromCharacterIndex(words, false),
             body.TextLayout.GetLineIndexFromCharacterIndex(atTop, false));
+    }
+
+    [AvaloniaFact]
+    public void Folding_back_and_forth_doesnt_creep_up_the_message()
+    {
+        var device = new Device();
+        var message = device.ViewModel.Messages[0];
+        device.ViewModel.SelectedMessage = message;
+        device.Settle();
+        var reader = device.Reader;
+        var body = device.Body;
+
+        // The top of the view on a line inside a paragraph, which starts mid-line once the width changes.
+        var paragraph = body.TextLayout.GetLineIndexFromCharacterIndex(message.Body.IndexOf("Third,", System.StringComparison.Ordinal), false);
+        var words = body.TextLayout.TextLines[paragraph + 1].FirstTextSourceIndex;
+        var line = body.TextLayout.HitTestTextPosition(words);
+        reader.Offset = reader.Offset.WithY(reader.Offset.Y + body.TranslatePoint(line.TopLeft, reader)!.Value.Y);
+        device.Settle();
+        Assert.Equal(words, device.ViewModel.ReadingPosition);
+
+        for (var i = 0; i < 3; i++)
+        {
+            device.Fold(Tabletop);
+            device.Fold(Open);
+        }
+
+        Assert.Equal(words, device.ViewModel.ReadingPosition);
+        var top = reader.TranslatePoint(default, body)!.Value;
+        Assert.Equal(words, body.TextLayout.HitTestPoint(new Point(0, top.Y + 1)).TextPosition);
     }
 
     [AvaloniaFact]
@@ -87,6 +117,51 @@ public class InboxTests
         device.Fold(Tabletop);
 
         Assert.InRange(list.ContainerFromItem(target)!.TranslatePoint(default, viewer)!.Value.Y, -1, 1);
+    }
+
+    [AvaloniaFact]
+    public void Focus_on_the_back_button_moves_to_the_list_when_the_device_opens()
+    {
+        var device = new Device();
+        device.Fold(Closed);
+        var message = device.ViewModel.Messages[3];
+        device.List.ContainerFromItem(message)!.Focus();
+        device.Window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        device.Wait(0.5);
+        device.BackButton.Focus();
+        device.Settle();
+        Assert.Same(device.BackButton, device.Focused);
+
+        // Opening hides the back button: the focus goes to the message's row, not nowhere.
+        device.Fold(Open);
+        Assert.Same(device.List.ContainerFromItem(message), device.Focused);
+    }
+
+    [AvaloniaFact]
+    public void Send_is_off_until_there_is_a_reply()
+    {
+        var device = new Device();
+        device.ViewModel.SelectedMessage = device.ViewModel.Messages[1];
+        device.Settle();
+        Assert.False(device.SendButton.IsEnabled);
+
+        device.ReplyBox.Text = "On my way";
+        device.Settle();
+        Assert.True(device.SendButton.IsEnabled);
+
+        device.SendButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        device.Settle();
+        Assert.Equal(string.Empty, device.ReplyBox.Text);
+        Assert.False(device.SendButton.IsEnabled);
+    }
+
+    [AvaloniaFact]
+    public void The_newest_mail_is_at_the_top()
+    {
+        var messages = new Device().ViewModel.Messages;
+
+        Assert.All(messages.Zip(messages.Skip(1)), pair => Assert.True(pair.First.Received >= pair.Second.Received));
+        Assert.True(messages[0].Received <= System.DateTime.Now);
     }
 
     [AvaloniaFact]
@@ -211,7 +286,9 @@ public class InboxTests
         var offset = reader.Offset.Y;
 
         // Typing a search, and clearing it, re-selects the open message in the list; it doesn't reopen it.
-        device.SearchBox.Text = "f";
+        device.SearchBox.Text = "dinner";
+        device.Settle();
+        Assert.DoesNotContain(message, device.ViewModel.VisibleMessages);
         device.Settle();
         device.SearchBox.Text = string.Empty;
         device.Settle();
@@ -313,14 +390,14 @@ public class InboxTests
     }
 
     [AvaloniaFact]
-    public void Focus_moved_while_closed_stays_put_even_when_the_hand_off_found_nowhere_to_land()
+    public void Focus_moved_while_closed_stays_put_even_when_the_search_hides_the_open_message()
     {
         var device = new Device();
         var open = device.ViewModel.Messages[6];
         device.ViewModel.SelectedMessage = open;
         device.Settle();
 
-        // The search hides the open message from the list, so closing has no row to hand the focus to.
+        // The search hides the open message from the list, so closing hands the focus to the first result.
         var search = device.SearchBox;
         search.Text = "fold";
         device.Settle();
@@ -329,6 +406,7 @@ public class InboxTests
         device.Settle();
 
         device.Fold(Closed);
+        Assert.Same(device.List.GetRealizedContainers().First(), device.Focused);
         search.Focus();
         device.Settle();
 
@@ -399,6 +477,8 @@ public class InboxTests
 
         public Button BackButton => Find<Button>("BackButton");
 
+        public Button SendButton => Find<Button>("SendButton");
+
         public TextBox SearchBox => Find<TextBox>("SearchBox");
 
         public ScrollViewer Reader => Find<ScrollViewer>("Reader");
@@ -407,12 +487,13 @@ public class InboxTests
 
         public IInputElement? Focused => Window.FocusManager?.GetFocusedElement();
 
-        // The cover display is 466 by 678 points; the inner display 951 by 669.
+        // The cover display is 466 by 678 points; the inner display 951 by 669, turned to 669 by 951 in
+        // tabletop.
         public void Fold(FoldState state)
         {
-            var closed = state.Posture == DevicePosture.Closed;
-            Window.Width = closed ? 466 : 951;
-            Window.Height = closed ? 678 : 669;
+            (Window.Width, Window.Height) = state.Posture == DevicePosture.Closed ? (466, 678)
+                : state.IsTabletop ? (669, 951)
+                : (951, 669);
             _fold.Current = state;
             Settle();
         }

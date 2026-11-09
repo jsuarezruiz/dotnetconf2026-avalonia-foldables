@@ -207,7 +207,7 @@ public sealed class GameView : Control
 
     private void OnFrame(TimeSpan elapsed)
     {
-        // A ticker that resumed after leaving the tree counts from zero again: that frame moves nothing.
+        // Never a step back in time, should the ticker's clock ever start over.
         var delta = elapsed >= _lastFrame ? elapsed - _lastFrame : TimeSpan.Zero;
         _lastFrame = elapsed;
 

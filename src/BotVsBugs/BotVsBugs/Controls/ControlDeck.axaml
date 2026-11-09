@@ -26,13 +26,13 @@
       <Border Classes="card">
         <Grid RowDefinitions="Auto,*">
           <TextBlock Classes="eyebrow" Text="FOLD TO PULL, OPEN TO FIRE" />
-          <controls:HingeGauge Name="Gauge" Grid.Row="1" />
+          <controls:HingeGauge Name="Gauge" Grid.Row="1" AutomationProperties.Name="Hinge gauge" />
         </Grid>
       </Border>
       <Border Grid.Column="1" Classes="card" Margin="10,0,0,0">
         <Grid RowDefinitions="Auto,*">
           <TextBlock Classes="eyebrow" Text="DRAG TO AIM" />
-          <controls:AimDial Name="Dial" Grid.Row="1" />
+          <controls:AimDial Name="Dial" Grid.Row="1" AutomationProperties.Name="Aim dial" />
         </Grid>
       </Border>
     </Grid>

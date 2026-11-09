@@ -21,6 +21,9 @@ public sealed class Studio
     private int _seed = Environment.TickCount;
     private bool _isPressing;
 
+    // The latest save, finished or not: deleting a drawing and listing the gallery wait for it.
+    private Task _lastSave = Task.CompletedTask;
+
     // The tool to go back to once the picker has picked a color.
     private ToolKind? _beforePicker;
 
@@ -354,6 +357,10 @@ public sealed class Studio
 
     public void ClearLayer()
     {
+        // While the press prints, the layers stay as it copied them: a change would only drop the print.
+        if (_isPressing)
+            return;
+
         var layer = Document.Active;
         lock (Document.Sync)
         {
@@ -384,7 +391,7 @@ public sealed class Studio
 
     public void AddLayer()
     {
-        if (!HasRoomForLayer())
+        if (_isPressing || !HasRoomForLayer())
             return;
 
         var layer = new Layer(Document.NextLayerName(), Document.Width, Document.Height);
@@ -397,7 +404,7 @@ public sealed class Studio
 
     public void DuplicateLayer()
     {
-        if (!HasRoomForLayer())
+        if (_isPressing || !HasRoomForLayer())
             return;
 
         Layer copy;
@@ -421,6 +428,9 @@ public sealed class Studio
 
     public void DeleteLayer()
     {
+        if (_isPressing)
+            return;
+
         if (Document.Layers.Count <= 1)
         {
             ClearLayer();
@@ -457,6 +467,9 @@ public sealed class Studio
 
     public void SetLayerVisible(int index, bool visible)
     {
+        if (_isPressing)
+            return;
+
         lock (Document.Sync)
             Document.Layers[index].IsVisible = visible;
         LayersEdited();
@@ -482,14 +495,23 @@ public sealed class Studio
             Notice?.Invoke(this, "That drawing couldn't be opened.");
     }
 
-    public void DeleteDrawing(string id)
+    public async Task DeleteDrawingAsync(string id)
     {
+        // A save still writing the drawing finishes first, or it could bring the folder back.
+        var isOpen = id == Document.Id;
+        var pending = isOpen && _autosave.IsEnabled;
+        if (isOpen)
+            _autosave.Stop();
+        await _lastSave;
+
         try
         {
             Gallery.Delete(id);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
+            if (pending)
+                _autosave.Start();
             Notice?.Invoke(this, "That drawing couldn't be deleted.");
             return;
         }
@@ -504,12 +526,13 @@ public sealed class Studio
 
     /// <summary>
     /// Saves changes now rather than after the next pause, as when the app goes to the background or
-    /// the gallery opens. A drawing without changes isn't written, so its date stays.
+    /// the gallery opens. A drawing without changes isn't written, so its date stays; a save already
+    /// under way is finished.
     /// </summary>
     public Task SaveNow()
     {
         if (!_autosave.IsEnabled)
-            return Task.CompletedTask;
+            return _lastSave;
 
         _autosave.Stop();
         return SaveAsync(Document);
@@ -531,9 +554,11 @@ public sealed class Studio
         }
     }
 
+    private Task SaveAsync(Document document) => _lastSave = SaveOrTellAsync(document);
+
     // Saves without throwing: a full disk or a missing folder shows a notice instead of losing the error.
     // Autosaves aren't awaited, so anything thrown here would otherwise vanish, or end the app where awaited.
-    private async Task SaveAsync(Document document)
+    private async Task SaveOrTellAsync(Document document)
     {
         try
         {

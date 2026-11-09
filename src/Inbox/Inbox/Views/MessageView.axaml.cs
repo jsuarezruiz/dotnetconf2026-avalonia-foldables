@@ -113,10 +113,21 @@ public partial class MessageView : UserControl
 
     // The character on the line at the top of the reader. ScrollChanged comes before the content is
     // arranged at the new offset, so this works from the offset rather than from where things are drawn.
+    // While the remembered character is still on that line, it's kept: the line's first character would
+    // move the view up a line each time the device folded and unfolded.
     private int CharacterAtTop()
     {
         var y = Reader.Offset.Y - BodyTop();
-        return y > 0 ? Body.TextLayout.HitTestPoint(new Point(0, y + 1)).TextPosition : 0;
+        if (y <= 0)
+            return 0;
+
+        var layout = Body.TextLayout;
+        var top = layout.HitTestPoint(new Point(0, y + 1)).TextPosition;
+        return _vm is { ReadingPosition: var kept }
+            && kept <= Body.Text?.Length
+            && layout.GetLineIndexFromCharacterIndex(kept, false) == layout.GetLineIndexFromCharacterIndex(top, false)
+                ? kept
+                : top;
     }
 
     private void ScrollToCharacter(int index)

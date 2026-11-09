@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Headless.XUnit;
+using Avalonia.Threading;
 using Inkfold;
 using Inkfold.Painting;
 using SkiaSharp;
@@ -44,6 +45,30 @@ public sealed class GalleryTests : IDisposable
         var studio = new Studio(gallery);
         Assert.Equal(damage == "intact" ? 1 : 0, gallery.List().Count);
         Assert.Equal(damage == "intact", studio.Document.Id == "drawing");
+    }
+
+    [AvaloniaFact]
+    public void Deleting_the_open_drawing_while_it_saves_leaves_nothing_behind()
+    {
+        var studio = new Studio(new Gallery(_root));
+        string? notice = null;
+        studio.Notice += (_, text) => notice = text;
+        var id = studio.Document.Id;
+
+        // A change, its save still writing as the delete is confirmed in the gallery.
+        studio.AddLayer();
+        var saving = studio.SaveNow();
+        var deleting = studio.DeleteDrawingAsync(id);
+        while (!saving.IsCompleted || !deleting.IsCompleted)
+        {
+            Dispatcher.UIThread.RunJobs();
+            System.Threading.Thread.Sleep(10);
+        }
+
+        Dispatcher.UIThread.RunJobs();
+        Assert.Null(notice);
+        Assert.False(Directory.Exists(Path.Combine(_root, id)));
+        Assert.NotEqual(id, studio.Document.Id);
     }
 
     [Fact]

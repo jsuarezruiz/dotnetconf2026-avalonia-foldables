@@ -35,22 +35,32 @@ public class GameViewTests
         var input = new Pointers(window, game);
         var finger = new Pointer(1, PointerType.Touch, true);
         var thumb = new Pointer(2, PointerType.Touch, false);
-
-        // A finger on the bot, then a thumb resting on the far side of the screen.
-        input.Down(finger, Screen(GameWorld.SlingAnchor));
         var aim = game.AimAngle;
+
+        // A drag that starts away from the bot grabs nothing.
+        var stray = new Pointer(3, PointerType.Touch, true);
+        input.Down(stray, new Point(800, 300));
+        input.Move(stray, new Point(700, 380));
+        input.Up(stray, new Point(700, 380));
+        Assert.Equal(aim, game.AimAngle);
+        Assert.Null(world.Shot);
+
+        // A finger on the bot pulls it back.
+        var pulled = Screen(GameWorld.SlingAnchor - new Vector2(1.4f, 0.6f));
+        input.Down(finger, Screen(GameWorld.SlingAnchor));
+        input.Move(finger, pulled);
+        var aimed = game.AimAngle;
+        Assert.NotEqual(aim, aimed);
+
+        // A thumb resting on the far side of the screen neither aims nor fires when it lifts.
         input.Down(thumb, new Point(800, 300));
         input.Move(thumb, new Point(840, 340));
-        Assert.Equal(aim, game.AimAngle);
-
-        // Lifting the thumb doesn't fire.
+        Assert.Equal(aimed, game.AimAngle);
         input.Up(thumb, new Point(840, 340));
         Assert.Null(world.Shot);
 
-        // The finger pulls back and lets go: that fires.
-        input.Move(finger, Screen(GameWorld.SlingAnchor - new Vector2(1.4f, 0.6f)));
-        Assert.NotEqual(aim, game.AimAngle);
-        input.Up(finger, Screen(GameWorld.SlingAnchor - new Vector2(1.4f, 0.6f)));
+        // The finger lets go: that fires.
+        input.Up(finger, pulled);
         Assert.NotNull(world.Shot);
     }
 }

@@ -61,9 +61,14 @@ public partial class MainView : UserControl
             insets.SafeAreaChanged += OnSafeAreaChanged;
         }
 
-        // Leaving the app, or the system's back, pauses a level in play.
+        // Leaving the app, the system's back or Escape pauses a level in play. Escape is heard on the top
+        // level because the menu button that had the focus leaves with the menu, and then keys go there.
         if (_topLevel is not null)
+        {
             _topLevel.BackRequested += OnBackRequested;
+            _topLevel.AddHandler(KeyDownEvent, OnKeyDownAnywhere);
+        }
+
         if (Application.Current?.TryGetFeature<IActivatableLifetime>() is { } lifetime)
             lifetime.Deactivated += OnDeactivated;
 
@@ -75,7 +80,11 @@ public partial class MainView : UserControl
         if (_topLevel?.InsetsManager is { } insets)
             insets.SafeAreaChanged -= OnSafeAreaChanged;
         if (_topLevel is not null)
+        {
             _topLevel.BackRequested -= OnBackRequested;
+            _topLevel.RemoveHandler(KeyDownEvent, OnKeyDownAnywhere);
+        }
+
         if (Application.Current?.TryGetFeature<IActivatableLifetime>() is { } lifetime)
             lifetime.Deactivated -= OnDeactivated;
         _topLevel = null;
@@ -91,10 +100,8 @@ public partial class MainView : UserControl
             KeepHudOffFold();
     }
 
-    protected override void OnKeyDown(KeyEventArgs e)
+    private void OnKeyDownAnywhere(object? sender, KeyEventArgs e)
     {
-        base.OnKeyDown(e);
-
         if (e.Key == Key.Escape && !MenuLayer.IsVisible)
         {
             Pause();
@@ -351,7 +358,7 @@ public partial class MainView : UserControl
                 },
             },
         };
-        AutomationProperties.SetName(button, $"Level {index + 1}, {level.Name}");
+        AutomationProperties.SetName(button, $"Level {index + 1}, {level.Name}, {Progress.StarsFor(index)} of 3 stars");
         button.Click += (_, _) => Play(index);
         return button;
     }
@@ -384,6 +391,7 @@ public partial class MainView : UserControl
             });
         }
 
+        AutomationProperties.SetName(row, $"{stars} of 3 stars");
         return row;
     }
 
