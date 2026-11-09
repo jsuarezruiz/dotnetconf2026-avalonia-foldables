@@ -1,10 +1,10 @@
-# Unfold your UI
+# Building Dual-Screen Experiences with Avalonia
 
-Building awesome foldable apps with .NET and Avalonia. This is the material from my .NET Conf 2026 session: the slides and three apps made for it.
+Unfold your UI on iPhone Duo, Android and desktop. This is the material from my .NET Conf 2026 session: the slides and three apps made for it.
 
 Foldables stopped being a niche this year. The iPhone Duo is in stores, and Android 17 no longer lets large-screen apps opt out of resizing. The session covers the four postures, why the fold is just a rectangle, and how [Nova.Avalonia.Foldable](https://github.com/jsuarezruiz/Nova.Avalonia.Foldable) brings it to Avalonia from one shared codebase.
 
-The slides are in [Unfold Your UI Foldable Apps with .NET and Avalonia.pptx](Unfold%20Your%20UI%20Foldable%20Apps%20with%20.NET%20and%20Avalonia.pptx), with speaker notes, and as a [PDF](Unfold%20Your%20UI%20Foldable%20Apps%20with%20.NET%20and%20Avalonia.pdf). They use the .NET Conf 2026 template, which embeds its fonts in the .pptx; to present from Keynote, install Space Grotesk, Open Sans and Cascadia Code first. They come in four parts: core concepts, the library, eleven samples (the three apps below among them), and tips for keeping users where they were when the device folds.
+The slides are in [Building Dual-Screen Experiences with Avalonia.pptx](Building%20Dual-Screen%20Experiences%20with%20Avalonia.pptx), with speaker notes, and as a [PDF](Building%20Dual-Screen%20Experiences%20with%20Avalonia.pdf). They use the .NET Conf 2026 template, which embeds its fonts in the .pptx; to present from Keynote, install Space Grotesk, Open Sans and Cascadia Code first. They come in four parts: core concepts, the library, eleven samples (the three apps below among them), and tips for keeping users where they were when the device folds.
 
 ## Bot vs Bugs
 
