@@ -94,8 +94,9 @@ public partial class ActionRail : UserControl
         if (_studio is not { } studio)
             return;
 
-        UndoButton.IsEnabled = studio.History.CanUndo;
-        RedoButton.IsEnabled = studio.History.CanRedo;
+        // The press takes no undo or redo while it prints, so the buttons say so.
+        UndoButton.IsEnabled = !studio.IsPressing && studio.History.CanUndo;
+        RedoButton.IsEnabled = !studio.IsPressing && studio.History.CanRedo;
         SymmetryButton.Classes.Set("selected", studio.Symmetry);
         PressButton.Classes.Set("selected", studio.IsPressArmed);
     }

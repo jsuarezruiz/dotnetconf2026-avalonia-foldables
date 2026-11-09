@@ -7,6 +7,15 @@ namespace DotnetConf2026.Foldable.Tests.Inkfold;
 public class HistoryTests
 {
     [Fact]
+    public void An_undo_area_rounds_out_so_a_strokes_edges_are_kept()
+    {
+        // A soft dab's bounds rarely land on whole pixels: the partly covered ones at each edge count too.
+        var area = Pixels.Clip(new SKRect(10.4f, 20.6f, 30.2f, 40.1f), new SKRectI(0, 0, 100, 100));
+
+        Assert.Equal(new SKRectI(10, 20, 31, 41), area);
+    }
+
+    [Fact]
     public void A_deleted_layer_comes_back_whole_after_its_add_leaves_the_history()
     {
         using var document = new Document("drawing", 32, 32, Document.DefaultPaper);

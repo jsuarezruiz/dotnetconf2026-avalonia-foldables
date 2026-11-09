@@ -13,7 +13,8 @@ public static unsafe class Pixels
     /// </summary>
     public static SKRectI Clip(SKRect area, SKRectI page)
     {
-        var rounded = SKRectI.Ceiling(area);
+        // Outward: left and top round down, right and bottom up, so the edges of a stroke are kept for undo.
+        var rounded = SKRectI.Ceiling(area, true);
         return SKRectI.Intersect(rounded, page);
     }
 

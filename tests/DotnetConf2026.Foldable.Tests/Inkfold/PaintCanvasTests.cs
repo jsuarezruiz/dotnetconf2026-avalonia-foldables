@@ -69,6 +69,68 @@ public sealed class PaintCanvasTests : IDisposable
         window.Close();
     }
 
+    [AvaloniaFact]
+    public void A_thumb_that_lands_before_the_press_and_lifts_during_it_leaves_the_print_alone()
+    {
+        var studio = new Studio(new Gallery(Path.Combine(_root, "early")));
+        var canvas = new PaintCanvas { Studio = studio };
+        var window = new Window { Width = 951, Height = 669, Content = canvas };
+        window.Show();
+        Pump();
+        var input = new Pointers(window, canvas);
+        var finger = new Pointer(1, PointerType.Touch, true);
+        input.Down(finger, new Point(300, 300));
+        input.Move(finger, new Point(400, 320));
+        input.Up(finger, new Point(400, 320));
+
+        var pressed = false;
+        string? notice = null;
+        studio.Pressed += (_, _) => pressed = true;
+        studio.Notice += (_, text) => notice = text;
+
+        // The thumb touches the inner screen while the device is still opening, then the press starts,
+        // then the thumb lifts.
+        input.Down(finger, new Point(600, 400));
+        input.Move(finger, new Point(640, 420));
+        var press = studio.PressAsync(PressFold.Vertical);
+        input.Up(finger, new Point(640, 420));
+        while (!press.IsCompleted)
+        {
+            Dispatcher.UIThread.RunJobs();
+            System.Threading.Thread.Sleep(10);
+        }
+
+        Pump();
+        Assert.Null(notice);
+        Assert.True(pressed);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Undo_and_redo_are_off_while_the_press_prints()
+    {
+        var studio = new Studio(new Gallery(Path.Combine(_root, "buttons")));
+        var rail = new ActionRail { Studio = studio };
+        var window = new Window { Width = 300, Height = 600, Content = rail };
+        window.Show();
+        studio.AddLayer();
+        Pump();
+        var undo = rail.FindControl<Button>("UndoButton")!;
+        Assert.True(undo.IsEnabled);
+
+        var press = studio.PressAsync(PressFold.Vertical);
+        Assert.False(undo.IsEnabled);
+        while (!press.IsCompleted)
+        {
+            Dispatcher.UIThread.RunJobs();
+            System.Threading.Thread.Sleep(10);
+        }
+
+        Pump();
+        Assert.True(undo.IsEnabled);
+        window.Close();
+    }
+
     private static void Pump()
     {
         for (var i = 0; i < 3; i++)

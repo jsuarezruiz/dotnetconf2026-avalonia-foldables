@@ -24,6 +24,9 @@ public sealed class Gallery
     private const string DrawingFileName = "drawing.json";
     private const string ThumbnailFileName = "thumbnail.png";
 
+    // Pages are 1600 by 1180; a side far past that isn't a drawing this app saved.
+    private const int MaxPageSide = 4096;
+
     private readonly SemaphoreSlim _saving = new(1, 1);
 
     public Gallery(string root)
@@ -199,9 +202,27 @@ public sealed class Gallery
     private static DrawingFile? ReadDrawing(string folder)
     {
         var path = Path.Combine(folder, DrawingFileName);
-        return File.Exists(path)
-            ? JsonSerializer.Deserialize(File.ReadAllText(path), GalleryJson.Default.DrawingFile)
-            : null;
+        if (!File.Exists(path))
+            return null;
+
+        // A damaged or hand-edited file counts as unreadable, like one that isn't JSON: no layer list, a page
+        // size no drawing here has, or a layer id that isn't a file name would otherwise crash the load.
+        var file = JsonSerializer.Deserialize(File.ReadAllText(path), GalleryJson.Default.DrawingFile);
+        if (file?.Layers is not { } layers
+            || file.Width is < 1 or > MaxPageSide || file.Height is < 1 or > MaxPageSide
+            || layers.Count > Studio.MaxLayers
+            || layers.Any(layer => layer is null || string.IsNullOrEmpty(layer.Id) || !layer.Id.All(char.IsAsciiLetterOrDigit)))
+            return null;
+
+        file.Name ??= "";
+        file.Paper ??= "";
+        foreach (var layer in layers)
+        {
+            layer.Name ??= "Layer";
+            layer.Opacity = double.IsFinite(layer.Opacity) ? Math.Clamp(layer.Opacity, 0, 1) : 1;
+        }
+
+        return file;
     }
 
     private static void WritePng(SKBitmap bitmap, string path)

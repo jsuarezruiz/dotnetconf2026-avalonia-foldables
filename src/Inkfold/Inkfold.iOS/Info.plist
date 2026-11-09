@@ -6,11 +6,6 @@
   <string>AppIcon</string>
   <key>LSRequiresIPhoneOS</key>
   <true/>
-  <!-- Exports land in the app's documents, which the Files app shows under On My iPhone. -->
-  <key>LSSupportsOpeningDocumentsInPlace</key>
-  <true/>
-  <key>UIFileSharingEnabled</key>
-  <true/>
   <key>MinimumOSVersion</key>
   <string>15.0</string>
   <key>UIDeviceFamily</key>

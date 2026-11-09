@@ -158,7 +158,7 @@ public class InboxTests
 
         // Opening the message starts the keyboard on its page, so Escape goes back with nothing clicked.
         OpenOnCover();
-        Assert.Same(device.BackButton, device.Focused);
+        Assert.Same(device.Reader, device.Focused);
         device.Window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
         device.Settle();
         Assert.Equal(TwoPaneViewPriority.Pane1, device.Panes.PanePriority);
@@ -237,6 +237,102 @@ public class InboxTests
         device.Settle();
 
         // Opening the device doesn't pull them back into the reply.
+        device.Fold(Open);
+        Assert.Same(search, device.Focused);
+    }
+
+    [AvaloniaFact]
+    public void Dates_and_numbers_are_American_whatever_the_machines_region()
+    {
+        var device = new Device();
+
+        Assert.Matches(@"^\w+day, \w{3} \d{1,2} · \d{1,2}:\d{2}\s(AM|PM)$", device.ViewModel.Messages[0].Date);
+        Assert.Equal("12,345", 12345.ToString("N0", System.Globalization.CultureInfo.CurrentCulture));
+    }
+
+    [AvaloniaFact]
+    public void Option_Left_in_the_reply_stays_in_the_text_on_a_Mac()
+    {
+        Assert.SkipUnless(System.OperatingSystem.IsMacOS(), "Option+Left moves by a word only on macOS.");
+        var device = new Device();
+        var message = device.ViewModel.Messages[1];
+        device.Fold(Closed);
+        device.List.ContainerFromItem(message)!.Focus();
+        device.Window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        device.Wait(0.5);
+        var reply = device.ReplyBox;
+        reply.Focus();
+        reply.Text = "See you at ten";
+        reply.CaretIndex = reply.Text.Length;
+        device.Settle();
+
+        device.Window.KeyPressQwerty(PhysicalKey.ArrowLeft, RawInputModifiers.Alt);
+        device.Settle();
+
+        Assert.Equal(TwoPaneViewPriority.Pane2, device.Panes.PanePriority);
+        Assert.Same(reply, device.Focused);
+    }
+
+    [AvaloniaFact]
+    public void The_mouse_back_button_goes_back_through_the_system_back()
+    {
+        var device = new Device();
+        var message = device.ViewModel.Messages[1];
+        device.Fold(Closed);
+        device.List.ContainerFromItem(message)!.Focus();
+        device.Window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        device.Wait(0.5);
+
+        // The top level turns the mouse's back button into BackRequested, which the view handles.
+        var middle = new Point(device.Window.Width / 2, device.Window.Height / 2);
+        device.Window.MouseDown(middle, MouseButton.XButton1);
+        device.Window.MouseUp(middle, MouseButton.XButton1);
+        device.Settle();
+
+        Assert.Equal(TwoPaneViewPriority.Pane1, device.Panes.PanePriority);
+    }
+
+    [AvaloniaFact]
+    public void A_message_opened_on_the_cover_keeps_the_focus_through_Enter_and_the_fold()
+    {
+        var device = new Device();
+        var message = device.ViewModel.Messages[1];
+        device.Fold(Closed);
+        device.List.ContainerFromItem(message)!.Focus();
+        device.Window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        device.Wait(0.5);
+
+        // Another Enter, or a held one repeating, doesn't press anything on the new page.
+        device.Window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        device.Settle();
+        Assert.Equal(TwoPaneViewPriority.Pane2, device.Panes.PanePriority);
+
+        // Opening the device keeps the keyboard on the message, which stays on screen.
+        device.Fold(Open);
+        Assert.Same(device.Reader, device.Focused);
+    }
+
+    [AvaloniaFact]
+    public void Focus_moved_while_closed_stays_put_even_when_the_hand_off_found_nowhere_to_land()
+    {
+        var device = new Device();
+        var open = device.ViewModel.Messages[6];
+        device.ViewModel.SelectedMessage = open;
+        device.Settle();
+
+        // The search hides the open message from the list, so closing has no row to hand the focus to.
+        var search = device.SearchBox;
+        search.Text = "fold";
+        device.Settle();
+        Assert.DoesNotContain(open, device.ViewModel.VisibleMessages);
+        device.ReplyBox.Focus();
+        device.Settle();
+
+        device.Fold(Closed);
+        search.Focus();
+        device.Settle();
+
+        // Opening doesn't pull the person back into the reply, or bring up a keyboard.
         device.Fold(Open);
         Assert.Same(search, device.Focused);
     }

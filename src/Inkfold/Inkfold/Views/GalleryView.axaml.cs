@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -102,7 +103,7 @@ public partial class GalleryView : UserControl
                     new TextBlock { Text = item.Name, FontSize = 14, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(4, 0) },
                     new TextBlock
                     {
-                        Text = isOpen ? "Open now" : item.Modified.ToString("MMM d, HH:mm"),
+                        Text = isOpen ? "Open now" : item.Modified.ToString("MMM d, h:mm tt", CultureInfo.CurrentCulture),
                         Classes = { "value" },
                         HorizontalAlignment = HorizontalAlignment.Left,
                         Margin = new Thickness(4, 0),

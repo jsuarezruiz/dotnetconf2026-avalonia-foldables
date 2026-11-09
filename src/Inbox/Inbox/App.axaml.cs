@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -14,7 +15,15 @@ public partial class App : Application
     /// </summary>
     public static Func<MainView, Window>? MainWindowFactory { get; set; }
 
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        // The app is in American English, so its dates, times and numbers are too, whatever the machine's
+        // region: English with a Spanish region, say, would otherwise show 24-hour times and "12.345".
+        var american = CultureInfo.GetCultureInfo("en-US");
+        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.DefaultThreadCurrentUICulture = american;
+        CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = american;
+        AvaloniaXamlLoader.Load(this);
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {

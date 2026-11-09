@@ -438,7 +438,7 @@ public partial class MainView : UserControl
             }
             else
             {
-                // No save dialog here: the app's own documents, which the Files app shows.
+                // No save dialog on this platform: the documents folder instead.
                 var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Inkfold");
                 Directory.CreateDirectory(folder);
                 using (var stream = File.Create(Path.Combine(folder, name)))

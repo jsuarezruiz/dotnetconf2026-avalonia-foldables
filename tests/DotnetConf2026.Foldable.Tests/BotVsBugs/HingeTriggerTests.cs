@@ -38,6 +38,21 @@ public class HingeTriggerTests
     }
 
     [Fact]
+    public void A_shallow_fold_fires_when_the_hinge_opens_back_to_rest()
+    {
+        _trigger.Update(Flat());
+        _trigger.Ready();
+
+        // Just deep enough to arm, too shallow to open another 22° before flat.
+        _trigger.Update(HalfOpen(158.4));
+        Assert.True(_trigger.IsArmed);
+        _trigger.Update(Flat());
+
+        var power = Assert.Single(_shots);
+        Assert.Equal((172 - 158.4) / 90d, power, 3);
+    }
+
+    [Fact]
     public void Opening_from_closed_never_fires()
     {
         // Ready while open flat, then closed: the hinge left, and opening starts from where it comes back.

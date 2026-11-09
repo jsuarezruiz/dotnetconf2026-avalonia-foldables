@@ -57,7 +57,7 @@ public sealed class Document : IDisposable
     {
         var document = new Document(NewId(), DefaultWidth, DefaultHeight, DefaultPaper)
         {
-            Name = $"Drawing {DateTime.Now:MMM d, HH:mm}",
+            Name = $"Drawing {DateTime.Now:MMM d, h:mm tt}",
         };
         document.Layers.Add(new Layer("Ink", DefaultWidth, DefaultHeight));
         return document;

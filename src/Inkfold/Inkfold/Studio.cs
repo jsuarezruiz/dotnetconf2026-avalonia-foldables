@@ -173,6 +173,11 @@ public sealed class Studio
     /// </summary>
     public void Commit(StrokeBuilder stroke)
     {
+        // A stroke that started just before the press and ends during it, like a thumb on the screen as
+        // the device opens, would change the page under the print: it's dropped instead.
+        if (_isPressing)
+            return;
+
         var live = stroke.Snapshot();
         var layer = live.Target;
         if (live.Samples.Length == 0 || layer.IsDisposed || !Document.Layers.Contains(layer))
@@ -201,7 +206,7 @@ public sealed class Studio
     /// </summary>
     public void FillAt(SKPoint point)
     {
-        if (!CanPaint())
+        if (_isPressing || !CanPaint())
             return;
 
         var layer = Document.Active;
@@ -238,8 +243,8 @@ public sealed class Studio
         }
 
         IsPressArmed = false;
-        SettingsChanged?.Invoke(this, EventArgs.Empty);
         _isPressing = true;
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
 
         var document = Document;
         var jobs = new List<(Layer Layer, int Version, SKBitmap Before, SKBitmap After, int Seed)>();
@@ -312,6 +317,7 @@ public sealed class Studio
             }
 
             _isPressing = false;
+            SettingsChanged?.Invoke(this, EventArgs.Empty);
 
             // Here rather than after the try: the paths that leave early return from inside it.
             if (notice is not null)

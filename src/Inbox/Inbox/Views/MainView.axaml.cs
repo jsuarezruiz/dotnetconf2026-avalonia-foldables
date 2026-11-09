@@ -1,3 +1,4 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -33,20 +34,14 @@ public partial class MainView : UserControl
             ShowPanes();
             if (onePane)
             {
-                // The list just hid: start the keyboard on the new page, so Escape and Tab still work.
+                // The list just hid: the keyboard starts on the message, so Escape goes back and Page Down
+                // scrolls. Not on the back button: it hides when the device opens, and Enter would press it.
                 MessagePane.SlideIn();
                 Panes.UpdateLayout();
-                MessagePane.BackButton.Focus();
+                MessagePane.Reader.Focus();
             }
         };
         MessagePane.BackRequested += (_, _) => GoBack();
-
-        // The mouse's back button, on desktop.
-        AddHandler(PointerPressedEvent, (_, e) =>
-        {
-            if (e.GetCurrentPoint(this).Properties.IsXButton1Pressed && GoBack())
-                e.Handled = true;
-        }, RoutingStrategies.Tunnel);
 
         // The list needs no help to keep its place: a virtualizing ListBox keeps its first visible row
         // through a resize. The open message's reading position does: see MessageView.
@@ -71,7 +66,8 @@ public partial class MainView : UserControl
     {
         base.OnAttachedToVisualTree(e);
 
-        // The system's back: Android's back button or gesture.
+        // The system's back: Android's back button or gesture, and on desktop the mouse's back button
+        // and Alt+Left. The top level outlives this view, so the handler comes off when it detaches.
         _topLevel = TopLevel.GetTopLevel(this);
         if (_topLevel is not null)
             _topLevel.BackRequested += OnSystemBack;
@@ -96,6 +92,11 @@ public partial class MainView : UserControl
     // Handled only when there's somewhere to go back to, so the system can still leave the app.
     private void OnSystemBack(object? sender, RoutedEventArgs e)
     {
+        // On a Mac, Option+Left in a text box moves the caret a word, but Avalonia also reads it as "back".
+        // The text box keeps it; from there, Escape and the on-screen back button still go back.
+        if (OperatingSystem.IsMacOS() && _topLevel?.FocusManager?.GetFocusedElement() is TextBox)
+            return;
+
         if (GoBack())
             e.Handled = true;
     }
@@ -129,24 +130,20 @@ public partial class MainView : UserControl
     // (with ClearSelectionOnLostFocus off) its selection, because a hidden pane isn't destroyed.
     private void KeepFocus()
     {
+        // Any focus change, the person's or the hand-off's below, also forgets a control waiting for its
+        // pane: the latest choice wins.
         AddHandler(GotFocusEvent, (_, e) =>
-        {
-            // The person moved the focus on their own since a pane hid: that's where it stays.
-            if (_restore is not null && _restore != _focused)
-                _restore = null;
-            _focused = e.Source as Control;
-        });
+            (_focused, _restore) = (e.Source as Control, null));
         Panes.ModeChanged += (_, _) =>
         {
             if (_restore is { IsEffectivelyVisible: true } back)
             {
-                _restore = null;
                 back.Focus();                    // its pane is back
             }
             else if (_focused is { IsEffectivelyVisible: false } hidden)
             {
-                _restore = hidden;               // its pane just hid
                 CounterpartOf(hidden).Focus();   // land next door
+                _restore = hidden;               // its pane just hid
             }
 
             _focused?.BringIntoView();

@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Avalonia.Headless.XUnit;
+using Inkfold;
 using Inkfold.Painting;
 using SkiaSharp;
 using Xunit;
@@ -15,6 +17,33 @@ public sealed class GalleryTests : IDisposable
     {
         if (Directory.Exists(_root))
             Directory.Delete(_root, true);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("intact")]
+    [InlineData("no layer list")]
+    [InlineData("a page no drawing has")]
+    [InlineData("a layer id that isn't a file name")]
+    public void A_damaged_drawing_is_left_out_instead_of_crashing_the_start(string damage)
+    {
+        var layers = damage switch
+        {
+            "no layer list" => "null",
+            "a layer id that isn't a file name" => """[{ "Id": "../../elsewhere", "Name": "Ink", "Visible": true, "Opacity": 1 }]""",
+            _ => """[{ "Id": "a1b2c3d4e5", "Name": "Ink", "Visible": true, "Opacity": 1 }]""",
+        };
+        var width = damage == "a page no drawing has" ? -5 : 64;
+        Directory.CreateDirectory(Path.Combine(_root, "drawing"));
+        File.WriteAllText(Path.Combine(_root, "drawing", "drawing.json"), $$"""
+            { "Name": "Test", "Width": {{width}}, "Height": 48, "Paper": "#F6F1E6", "Active": 0,
+              "Created": "2026-11-09T09:00:00", "Modified": "2026-11-09T09:00:00", "Layers": {{layers}} }
+            """);
+        var gallery = new Gallery(_root);
+
+        // The app starts on the latest drawing; a damaged one is skipped for a blank page.
+        var studio = new Studio(gallery);
+        Assert.Equal(damage == "intact" ? 1 : 0, gallery.List().Count);
+        Assert.Equal(damage == "intact", studio.Document.Id == "drawing");
     }
 
     [Fact]

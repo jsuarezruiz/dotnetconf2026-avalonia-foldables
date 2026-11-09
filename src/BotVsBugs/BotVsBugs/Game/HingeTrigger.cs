@@ -122,7 +122,10 @@ public sealed class HingeTrigger
         // Armed, the band stays at the deepest fold until it lets go, so what shows is what fires.
         _deepest = Math.Min(_deepest, angle);
         Pull = Math.Clamp((RestAngle - _deepest) / FullTravel, 0d, 1d);
-        if (angle - _deepest < ReleaseTravel)
+
+        // Opening by the release travel lets go; so does opening back to rest, which a shallow fold needs:
+        // armed at 158°, it couldn't open another 22°.
+        if (angle - _deepest < ReleaseTravel && angle < RestAngle)
             return;
 
         var power = Pull;
