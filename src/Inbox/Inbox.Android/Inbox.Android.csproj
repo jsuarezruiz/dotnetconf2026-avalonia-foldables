@@ -10,6 +10,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Inbox\Inbox.csproj" />
     <!-- Referenced directly too, so this head gets the library's Android build with the hinge provider. -->
-    <ProjectReference Include="$(NovaFoldableProject)" />
+    <PackageReference Include="Nova.Avalonia.Foldable" />
   </ItemGroup>
 </Project>

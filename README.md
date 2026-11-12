@@ -26,19 +26,25 @@ The talk's tips as an app: the list and the open message either side of the fold
 
 ## Run them
 
-You need .NET SDK 10.0.402 with the iOS and Android workloads, and Xcode 27.1 for iOS. Clone with the library, which comes in as a submodule until it's on NuGet:
+You need .NET SDK 10.0.402, plus the iOS and Android workloads and Xcode 27.1 for the mobile heads. The apps get the library from NuGet: [Nova.Avalonia.Foldable](https://www.nuget.org/packages/Nova.Avalonia.Foldable), and [Nova.Avalonia.Foldable.Simulator](https://www.nuget.org/packages/Nova.Avalonia.Foldable.Simulator) for the desktop window that simulates the iPhone Duo.
 
 ```bash
-git clone --recursive https://github.com/jsuarezruiz/dotnetconf2026-avalonia-foldables.git
+git clone https://github.com/jsuarezruiz/dotnetconf2026-avalonia-foldables.git
 dotnet run --project src/BotVsBugs/BotVsBugs.Desktop
 ```
 
-Swap in `Inkfold` or `Inbox` for the other apps, or build the `.iOS` and `.Android` heads for a device. Without the mobile workloads, add `-p:DesktopOnly=true` so the library builds for desktop only.
+Swap in `Inkfold` or `Inbox` for the other apps, or build the `.iOS` and `.Android` heads for a device. The desktop heads and the tests don't need the mobile workloads.
 
 The hinge and fold logic, the game, the painting and the inbox's folds have tests that run without a device:
 
 ```bash
-dotnet test tests/DotnetConf2026.Foldable.Tests -p:DesktopOnly=true
+dotnet test tests/DotnetConf2026.Foldable.Tests
+```
+
+To try changes to the library, point `NovaFoldableRoot` at your checkout of it, and the apps build its projects instead of the packages. Add `-p:DesktopOnly=true` too if you don't have the mobile workloads:
+
+```bash
+dotnet run --project src/BotVsBugs/BotVsBugs.Desktop -p:NovaFoldableRoot=$HOME/src/Nova.Avalonia.Foldable
 ```
 
 The session's other demos, the Sample and Guide To the Stars, live in the [library's repo](https://github.com/jsuarezruiz/Nova.Avalonia.Foldable/tree/main/samples).

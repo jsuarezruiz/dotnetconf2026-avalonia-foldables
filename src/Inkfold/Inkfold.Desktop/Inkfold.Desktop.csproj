@@ -12,6 +12,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Inkfold\Inkfold.csproj" />
     <!-- The iPhone Duo simulator window, from Nova.Avalonia.Foldable. -->
-    <ProjectReference Include="$(NovaFoldableSimulatorProject)" />
+    <PackageReference Include="Nova.Avalonia.Foldable.Simulator" />
   </ItemGroup>
 </Project>

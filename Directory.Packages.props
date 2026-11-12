@@ -6,6 +6,9 @@
     <AvaloniaVersion>12.1.4</AvaloniaVersion>
   </PropertyGroup>
   <ItemGroup>
+    <!-- The library and its desktop simulator window. -->
+    <PackageVersion Include="Nova.Avalonia.Foldable" Version="1.0.0" />
+    <PackageVersion Include="Nova.Avalonia.Foldable.Simulator" Version="1.0.0" />
     <PackageVersion Include="Avalonia" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />

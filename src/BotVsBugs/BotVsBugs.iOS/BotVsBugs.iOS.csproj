@@ -10,6 +10,6 @@
   <ItemGroup>
     <ProjectReference Include="..\BotVsBugs\BotVsBugs.csproj" />
     <!-- Referenced directly too, so this head gets the library's iOS build with the hinge provider. -->
-    <ProjectReference Include="$(NovaFoldableProject)" />
+    <PackageReference Include="Nova.Avalonia.Foldable" />
   </ItemGroup>
 </Project>

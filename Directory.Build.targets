@@ -1,0 +1,11 @@
+<Project>
+  <!-- With NovaFoldableRoot set, every reference to the Nova.Avalonia.Foldable packages becomes a reference to the
+       matching project in that checkout, so the demos build the library from source. -->
+  <ItemGroup Condition="'$(NovaFoldableRoot)' != ''">
+    <_NovaFoldablePackage Include="@(PackageReference->WithMetadataValue('Identity', 'Nova.Avalonia.Foldable'))" />
+    <_NovaFoldableSimulatorPackage Include="@(PackageReference->WithMetadataValue('Identity', 'Nova.Avalonia.Foldable.Simulator'))" />
+    <ProjectReference Include="$(NovaFoldableProject)" Condition="'@(_NovaFoldablePackage)' != ''" />
+    <ProjectReference Include="$(NovaFoldableSimulatorProject)" Condition="'@(_NovaFoldableSimulatorPackage)' != ''" />
+    <PackageReference Remove="Nova.Avalonia.Foldable;Nova.Avalonia.Foldable.Simulator" />
+  </ItemGroup>
+</Project>
