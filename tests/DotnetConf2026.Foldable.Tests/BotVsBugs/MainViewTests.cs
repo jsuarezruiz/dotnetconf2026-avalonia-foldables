@@ -53,6 +53,43 @@ public class MainViewTests
         }
     }
 
+    [AvaloniaFact]
+    public void On_a_narrow_screen_the_hint_wraps_and_pause_stays_on_screen()
+    {
+        var brushes = new ResourceInclude(new Uri("avares://BotVsBugs"))
+        {
+            Source = new Uri("avares://BotVsBugs/Styles/Resources.axaml"),
+        };
+        var resources = Application.Current!.Resources.MergedDictionaries;
+        resources.Add(brushes);
+        try
+        {
+            // Narrower than a level's hint and the score and pause side by side.
+            var view = new MainView();
+            var window = new Window { Width = 360, Height = 678, Content = view };
+            window.Show();
+            Pump();
+
+            var menu = view.FindControl<Panel>("MenuLayer")!;
+            var play = menu.GetVisualDescendants().OfType<Button>()
+                .First(button => button.Content is string text && text.StartsWith("Play level", StringComparison.Ordinal));
+            var center = play.TranslatePoint(new Point(play.Bounds.Width / 2, play.Bounds.Height / 2), window)!.Value;
+            window.MouseDown(center, MouseButton.Left);
+            window.MouseUp(center, MouseButton.Left);
+            Pump();
+
+            Assert.True(view.FindControl<Border>("HintBox")!.IsVisible);
+            var pause = view.FindControl<Button>("PauseButton")!;
+            var right = pause.TranslatePoint(new Point(pause.Bounds.Width, 0), window)!.Value.X;
+            Assert.InRange(right, 0, window.Width - 12 + 0.5);
+            window.Close();
+        }
+        finally
+        {
+            resources.Remove(brushes);
+        }
+    }
+
     private static void Pump()
     {
         for (var i = 0; i < 3; i++)

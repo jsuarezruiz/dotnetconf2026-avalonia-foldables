@@ -300,10 +300,12 @@ public partial class MainView : UserControl
                 Place(Tools, HorizontalAlignment.Center, VerticalAlignment.Bottom, new Thickness(0, 0, 0, safe.Bottom + Gap));
                 Actions.IsVisible = true;
                 Actions.Orientation = Orientation.Horizontal;
-                Place(Actions, HorizontalAlignment.Center, VerticalAlignment.Top, new Thickness(0, safe.Top + Gap, 0, 0));
+                // At the top the sides count too: the iPhone Duo's cover display has its camera and clock in
+                // the top corner, beside the app.
+                Place(Actions, HorizontalAlignment.Center, VerticalAlignment.Top, new Thickness(safe.Left, safe.Top + Gap, safe.Right, 0));
                 Canvas.FitInsets = new Thickness(safe.Left, top, safe.Right, bottom);
-                Place(FitButton, HorizontalAlignment.Center, VerticalAlignment.Top, new Thickness(0, top + 8, 0, 0));
-                Place(PressBanner, HorizontalAlignment.Center, VerticalAlignment.Top, new Thickness(Gap, top + 8, Gap, 0));
+                Place(FitButton, HorizontalAlignment.Center, VerticalAlignment.Top, new Thickness(safe.Left, top + 8, safe.Right, 0));
+                Place(PressBanner, HorizontalAlignment.Center, VerticalAlignment.Top, new Thickness(safe.Left + Gap, top + 8, safe.Right + Gap, 0));
                 Place(Toast, HorizontalAlignment.Center, VerticalAlignment.Bottom, new Thickness(0, 0, 0, bottom + 8));
 
                 // A sheet over the bottom of the page.

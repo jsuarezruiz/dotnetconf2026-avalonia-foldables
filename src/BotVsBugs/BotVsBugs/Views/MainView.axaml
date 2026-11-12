@@ -21,9 +21,11 @@
           <controls:GameView Name="Game" />
 
           <!-- Across a vertical fold, the start of the HUD keeps to the left page and its end to the right
-               one (MainView.KeepHudOffFold); the chips wrap rather than cross the crease. -->
-          <Grid Name="Hud" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Top" Margin="12">
-            <StackPanel Name="HudStart" Spacing="8">
+               one (MainView.KeepHudOffFold); the chips wrap rather than cross the crease. The start takes
+               the room the end leaves, so on a narrow screen the hint wraps instead of pushing the score
+               and pause off the edge. -->
+          <Grid Name="Hud" ColumnDefinitions="*,Auto" VerticalAlignment="Top" Margin="12">
+            <StackPanel Name="HudStart" Spacing="8" HorizontalAlignment="Left">
               <WrapPanel ItemSpacing="8" LineSpacing="8">
                 <Border Classes="chip">
                   <StackPanel Orientation="Horizontal" Spacing="10">
@@ -45,7 +47,7 @@
               </Border>
             </StackPanel>
 
-            <StackPanel Name="HudEnd" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+            <StackPanel Name="HudEnd" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top" Margin="8,0,0,0">
               <Border Classes="chip">
                 <TextBlock Name="ScoreText" Classes="hud" Foreground="{StaticResource SunBrush}" />
               </Border>

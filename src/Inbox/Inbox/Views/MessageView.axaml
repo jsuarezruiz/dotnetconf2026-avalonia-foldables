@@ -16,7 +16,7 @@
       <TextBlock Classes="muted" Text="Pick a message to read it here" />
     </StackPanel>
 
-    <DockPanel IsVisible="{Binding HasSelection}">
+    <DockPanel Name="Page" IsVisible="{Binding HasSelection}">
       <!-- Back, shown only when this pane is on its own. -->
       <Button Name="BackButton"
               DockPanel.Dock="Top"

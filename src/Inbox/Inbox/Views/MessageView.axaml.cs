@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Controls;
+using Avalonia.Controls.Platform;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
@@ -30,6 +31,8 @@ public partial class MessageView : UserControl
 
     private InboxViewModel? _vm;
     private Message? _shown;
+    private TopLevel? _topLevel;
+    private IInputPane? _keyboard;
     private IPointer? _swipe;
     private double _swipeFrom;
 
@@ -68,6 +71,50 @@ public partial class MessageView : UserControl
         _slide.X = 120;
         _slide.Transitions = _settle;
         _slide.X = 0;
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+
+        // The on-screen keyboard is drawn over the app, not beside it. The platform's keyboard outlives
+        // this view, so the handler comes off when it detaches.
+        _topLevel = TopLevel.GetTopLevel(this);
+        _keyboard = _topLevel?.InputPane;
+        if (_keyboard is not null)
+            _keyboard.StateChanged += OnKeyboardChanged;
+        SizeChanged += OnSizeChanged;
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        if (_keyboard is not null)
+            _keyboard.StateChanged -= OnKeyboardChanged;
+        SizeChanged -= OnSizeChanged;
+        _keyboard = null;
+        _topLevel = null;
+
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    private void OnKeyboardChanged(object? sender, InputPaneStateEventArgs e) => KeepReplyAboveKeyboard();
+
+    private void OnSizeChanged(object? sender, SizeChangedEventArgs e) => KeepReplyAboveKeyboard();
+
+    // Lifts the page by however much of this pane the keyboard covers, so the reply being typed stays in
+    // view. In tabletop the message is above the fold and the keyboard below it: nothing to lift.
+    private void KeepReplyAboveKeyboard()
+    {
+        var covered = 0d;
+        if (_topLevel is not null
+            && _keyboard is { State: InputPaneState.Open, OccludedRect: { Height: > 0 } keyboard }
+            && this.TranslatePoint(new Point(0, Bounds.Height), _topLevel) is { } bottom)
+        {
+            covered = Math.Clamp(bottom.Y - keyboard.Top, 0, keyboard.Height);
+        }
+
+        if (Page.Margin.Bottom != covered)
+            Page.Margin = new Thickness(0, 0, 0, covered);
     }
 
     protected override void OnDataContextChanged(EventArgs e)
