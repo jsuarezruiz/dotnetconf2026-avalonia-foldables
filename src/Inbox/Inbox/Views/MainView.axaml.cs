@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
@@ -21,6 +22,8 @@ public partial class MainView : UserControl
     // The control that had the focus, and one whose pane hid while it did.
     private Control? _focused;
     private Control? _restore;
+
+    private bool _inBackground;
 
     public MainView()
     {
@@ -46,8 +49,10 @@ public partial class MainView : UserControl
 
         Panes.ModeChanged += (_, _) =>
         {
-            // Both panes on screen: there's no "reading" pane to go back from.
-            if (Panes.Mode != TwoPaneViewMode.SinglePane)
+            // Both panes on screen: there's no "reading" pane to go back from. Not in the background, though:
+            // there iOS lays the app out again for the app switcher's snapshot, wide enough for two panes,
+            // and a mode nobody sees mustn't close the message they come back to.
+            if (Panes.Mode != TwoPaneViewMode.SinglePane && !_inBackground)
                 _vm.IsReading = false;
             ShowPanes();
         };
@@ -74,6 +79,12 @@ public partial class MainView : UserControl
         _topLevel = TopLevel.GetTopLevel(this);
         if (_topLevel is not null)
             _topLevel.BackRequested += OnSystemBack;
+
+        if (Application.Current?.TryGetFeature<IActivatableLifetime>() is { } lifetime)
+        {
+            lifetime.Deactivated += OnDeactivated;
+            lifetime.Activated += OnActivated;
+        }
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -82,7 +93,29 @@ public partial class MainView : UserControl
             _topLevel.BackRequested -= OnSystemBack;
         _topLevel = null;
 
+        if (Application.Current?.TryGetFeature<IActivatableLifetime>() is { } lifetime)
+        {
+            lifetime.Deactivated -= OnDeactivated;
+            lifetime.Activated -= OnActivated;
+        }
+
         base.OnDetachedFromVisualTree(e);
+    }
+
+    // The app went to the background, or came back. Internal so the tests can send it there too: only
+    // Avalonia can implement IActivatableLifetime.
+    internal void OnDeactivated(object? sender, ActivatedEventArgs e) => _inBackground = true;
+
+    // Back in front, the mode is one the person sees again. If the device opened meanwhile, both panes
+    // are on screen now and the message stops being the "reading" pane.
+    internal void OnActivated(object? sender, ActivatedEventArgs e)
+    {
+        _inBackground = false;
+        if (Panes.Mode != TwoPaneViewMode.SinglePane && _vm.IsReading)
+        {
+            _vm.IsReading = false;
+            ShowPanes();
+        }
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

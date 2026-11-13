@@ -12,4 +12,8 @@
   <ItemGroup>
     <PackageReference Include="Nova.Avalonia.Foldable" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DotnetConf2026.Foldable.Tests" />
+  </ItemGroup>
 </Project>

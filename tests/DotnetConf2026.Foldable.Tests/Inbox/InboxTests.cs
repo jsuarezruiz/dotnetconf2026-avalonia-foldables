@@ -1,6 +1,7 @@
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -448,6 +449,60 @@ public class InboxTests
         Assert.Same(open, device.List.SelectedItem);
     }
 
+    [AvaloniaFact]
+    public void Switching_to_another_app_and_back_keeps_the_open_message()
+    {
+        var device = new Device();
+        var message = device.ViewModel.Messages[0];
+        device.Fold(Closed);
+        device.List.ContainerFromItem(message)!.Focus();
+        device.Window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        device.Wait(0.5);
+        Assert.True(device.ViewModel.IsReading);
+
+        // In the background, iOS lays the app out once more for the app switcher's snapshot: on the iPhone Duo's
+        // cover display, at 867 by 635, wide enough for two panes. Then it goes back to the cover's size.
+        device.Leave();
+        (device.Window.Width, device.Window.Height) = (867, 635);
+        device.Settle();
+        Assert.NotEqual(TwoPaneViewMode.SinglePane, device.Panes.Mode);
+        (device.Window.Width, device.Window.Height) = (466, 678);
+        device.Settle();
+        device.Return();
+        device.Settle();
+
+        // The person never saw two panes: the message they left is still open.
+        Assert.True(device.ViewModel.IsReading);
+        Assert.Same(message, device.ViewModel.SelectedMessage);
+        Assert.Equal(TwoPaneViewPriority.Pane2, device.Panes.PanePriority);
+        Assert.True(device.BackButton.IsEffectivelyVisible);
+    }
+
+    [AvaloniaFact]
+    public void Opening_the_device_while_the_app_is_away_still_shows_both_panes()
+    {
+        var device = new Device();
+        var message = device.ViewModel.Messages[0];
+        device.Fold(Closed);
+        device.List.ContainerFromItem(message)!.Focus();
+        device.Window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        device.Wait(0.5);
+
+        // The device opens while another app is in front. Back in the inbox, both panes are on screen, so the
+        // message is no longer read on its own...
+        device.Leave();
+        device.Fold(Open);
+        device.Return();
+        device.Settle();
+        Assert.Equal(TwoPaneViewMode.Wide, device.Panes.Mode);
+        Assert.False(device.ViewModel.IsReading);
+
+        // ...and closing the device goes back to the list, as it does when it opens in front of the person.
+        device.Fold(Closed);
+        Assert.Equal(TwoPaneViewPriority.Pane1, device.Panes.PanePriority);
+        Assert.Same(message, device.ViewModel.SelectedMessage);
+    }
+
     // The app in a window sized like the iPhone Duo's displays, with a fold the test sets.
     private sealed class Device
     {
@@ -525,6 +580,11 @@ public class InboxTests
 
             Settle();
         }
+
+        // Another app comes in front, and the inbox goes to the background; then it comes back.
+        public void Leave() => View.OnDeactivated(null, new ActivatedEventArgs(ActivationKind.Background));
+
+        public void Return() => View.OnActivated(null, new ActivatedEventArgs(ActivationKind.Background));
 
         public void Settle()
         {
